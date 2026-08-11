@@ -1,0 +1,43 @@
+.business-table thead th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.business-table tbody tr {
+    transition: 0.2s ease;
+    cursor: pointer;
+}
+
+.business-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.business-table td {
+    vertical-align: middle;
+}
+
+.business-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+.business-location {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.business-link {
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.business-link:hover {
+    text-decoration: underline;
+}
+
+.table-responsive {
+    border-radius: 12px;
+}

@@ -1,0 +1,336 @@
+/* =====================================================
+   Page
+===================================================== */
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.page-subtitle {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* =====================================================
+   Toolbar
+===================================================== */
+
+.lead-toolbar {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06);
+}
+
+.lead-toolbar .form-control,
+.lead-toolbar .form-select {
+    height: 46px;
+    border-radius: 10px;
+}
+
+.lead-toolbar .btn {
+    height: 46px;
+    border-radius: 10px;
+}
+
+/* =====================================================
+   Table
+===================================================== */
+
+.card {
+    border: none !important;
+    border-radius: 14px;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px;
+    white-space: nowrap;
+}
+
+.table tbody td {
+    padding: 18px 16px;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.table strong {
+    font-size: 15px;
+    color: #111827;
+}
+
+.table .text-muted {
+    font-size: 13px;
+}
+
+/* =====================================================
+   Status Badge
+===================================================== */
+
+.badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 30px;
+    text-transform: capitalize;
+}
+
+/* =====================================================
+   Action Buttons
+===================================================== */
+
+.action-icon-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.action-icon-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+}
+
+.action-icon-btn-phone {
+    background-color: #10b981 !important;
+    border: 1px solid #10b981 !important;
+    color: #ffffff !important;
+}
+
+.action-icon-btn-phone svg {
+    stroke: #ffffff !important;
+    color: #ffffff !important;
+}
+
+.action-icon-btn-phone:hover {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.action-icon-btn-view {
+    background-color: #eff6ff !important;
+    border: 1px solid #bfdbfe !important;
+    color: #2563eb !important;
+}
+
+.action-icon-btn-view svg {
+    stroke: #2563eb !important;
+    color: #2563eb !important;
+}
+
+.action-icon-btn-view:hover {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    transform: translateY(-1px);
+}
+
+.action-icon-btn-view:hover svg {
+    stroke: #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* =====================================================
+   Pagination
+===================================================== */
+
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    border: none;
+    color: #374151;
+}
+
+.pagination .active .page-link {
+    background: #0d6efd;
+    color: #fff;
+}
+
+/* =====================================================
+   Responsive
+===================================================== */
+
+@media (max-width: 991px) {
+
+    .lead-toolbar {
+        padding: 16px;
+    }
+
+    .table {
+        min-width: 100%;
+    }
+
+}
+
+@media (max-width: 767px) {
+
+    .page-title {
+        font-size: 20px;
+    }
+
+    .table {
+        table-layout: fixed;
+        width: 100% !important;
+    }
+
+    .table thead th {
+        padding: 10px 8px !important;
+        font-size: 0.78rem !important;
+    }
+
+    .table tbody td {
+        padding: 10px 8px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .action-icon-btn {
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 6px !important;
+    }
+
+    .action-icon-btn svg {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px !important;
+        min-height: 14px !important;
+    }
+
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+
+}
+
+@media (max-width: 576px) {
+
+    .page-title {
+        font-size: 20px;
+    }
+
+}
+
+
+/* ===========================================
+   Website Audit
+=========================================== */
+
+.audit-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:20px;
+    text-align:center;
+    border:1px solid #e5e7eb;
+}
+
+.audit-box h4{
+    margin-top:10px;
+    margin-bottom:0;
+    font-weight:700;
+}
+
+.audit-icon{
+    font-size:24px;
+    margin-bottom:10px;
+}
+
+.progress{
+    height:12px;
+    border-radius:30px;
+    background:#edf2f7;
+}
+
+.progress-bar{
+    font-size:11px;
+    font-weight:600;
+}
+
+
+
+/* ==========================================
+   Lead Update Card
+========================================== */
+
+.card-header{
+    background:#fff;
+    font-weight:600;
+}
+
+.form-label{
+    font-weight:600;
+    margin-bottom:8px;
+}
+
+.form-control,
+.form-select{
+    border-radius:10px;
+    min-height:46px;
+}
+
+textarea.form-control{
+    min-height:130px;
+}
+
+.btn-lg{
+    border-radius:10px;
+    padding:10px 30px;
+}
+
+
+/* ===========================================
+   Timeline
+=========================================== */
+
+.timeline-item{
+    display:flex;
+    gap:20px;
+    padding:20px 0;
+    border-bottom:1px solid #ececec;
+}
+
+.timeline-item:last-child{
+    border-bottom:none;
+}
+
+.timeline-icon{
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:#0d6efd;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+
+.timeline-content{
+    flex:1;
+}

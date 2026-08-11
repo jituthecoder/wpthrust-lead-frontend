@@ -1,0 +1,40 @@
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #F5F7FB;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.main-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Desktop Sidebar */
+.desktop-sidebar {
+    width: 270px;
+    flex-shrink: 0;
+}
+
+/* Main Content */
+.content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-content {
+    flex: 1;
+    padding: 24px;
+}
+
+/* Mobile */
+@media (max-width: 991px) {
+
+    .desktop-sidebar {
+        display: none;
+    }
+
+}

@@ -1,0 +1,229 @@
+/* ===========================
+   Business Details Page
+=========================== */
+
+.business-details-page {
+    padding: 24px;
+}
+
+.business-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.business-header h2 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.business-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 15px;
+}
+
+/* ===========================
+   Hero Card
+=========================== */
+
+.business-card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.08);
+    margin-bottom: 25px;
+}
+
+.business-card .card-body{
+    padding:30px;
+}
+
+.business-name{
+    font-size:30px;
+    font-weight:700;
+    color:#111827;
+}
+
+.business-category{
+    margin-top:8px;
+    color:#6b7280;
+    font-size:16px;
+}
+
+.status-badge{
+    padding:8px 18px;
+    border-radius:30px;
+    font-size:13px;
+    font-weight:600;
+    text-transform:capitalize;
+}
+
+/* ===========================
+   Information Cards
+=========================== */
+
+.info-card{
+    border:none;
+    border-radius:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.08);
+    height:100%;
+}
+
+.info-card .card-header{
+    background:#fff;
+    border-bottom:1px solid #eef2f7;
+    font-size:18px;
+    font-weight:600;
+    padding:18px 22px;
+}
+
+.info-card .card-body{
+    padding:22px;
+}
+
+.info-item{
+    margin-bottom:18px;
+}
+
+.info-item:last-child{
+    margin-bottom:0;
+}
+
+.info-label{
+    display:block;
+    font-size:13px;
+    color:#6b7280;
+    margin-bottom:4px;
+    font-weight:600;
+}
+
+.info-value{
+    font-size:15px;
+    color:#111827;
+    word-break:break-word;
+}
+
+.info-value a{
+    color:#2563eb;
+    text-decoration:none;
+}
+
+.info-value a:hover{
+    text-decoration:underline;
+}
+
+/* ===========================
+   Audit Scores
+=========================== */
+
+.audit-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid #eef2f7;
+}
+
+.audit-item:last-child{
+    border-bottom:none;
+}
+
+.audit-title{
+    color:#374151;
+    font-weight:500;
+}
+
+.audit-score{
+    font-weight:700;
+    font-size:18px;
+    color:#2563eb;
+}
+
+/* ===========================
+   Activities
+=========================== */
+
+.timeline-card{
+    margin-top:25px;
+    border:none;
+    border-radius:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.08);
+}
+
+.timeline-item{
+    position:relative;
+    padding-left:24px;
+    margin-bottom:24px;
+}
+
+.timeline-item:last-child{
+    margin-bottom:0;
+}
+
+.timeline-item::before{
+    content:"";
+    position:absolute;
+    left:5px;
+    top:6px;
+    width:10px;
+    height:10px;
+    background:#2563eb;
+    border-radius:50%;
+}
+
+.timeline-title{
+    font-weight:600;
+    color:#111827;
+}
+
+.timeline-date{
+    color:#9ca3af;
+    font-size:13px;
+}
+
+.timeline-comment{
+    margin-top:8px;
+    color:#4b5563;
+}
+
+/* ===========================
+   Back Button
+=========================== */
+
+.back-btn{
+    border-radius:10px;
+    padding:10px 18px;
+}
+
+/* ===========================
+   Responsive
+=========================== */
+
+@media(max-width:992px){
+
+    .business-header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:15px;
+    }
+
+}
+
+@media(max-width:768px){
+
+    .business-details-page{
+        padding:16px;
+    }
+
+    .business-name{
+        font-size:24px;
+    }
+
+    .business-header h2{
+        font-size:24px;
+    }
+
+}

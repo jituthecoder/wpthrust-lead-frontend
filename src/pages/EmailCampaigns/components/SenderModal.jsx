@@ -1,0 +1,436 @@
+import { useEffect, useState } from "react";
+import { Modal, Button, Form, Spinner, Row, Col, Card } from "react-bootstrap";
+import toast from "react-hot-toast";
+import { FcGoogle } from "react-icons/fc";
+import { BsMicrosoft } from "react-icons/bs";
+import { FiServer, FiPlus } from "react-icons/fi";
+import { createEmailSender, updateEmailSender, testSenderConnection } from "../../../api/emailSenders";
+
+export default function SenderModal({ show, onHide, sender = null, initialProvider = "smtp", onSaved }) {
+    const isEdit = Boolean(sender);
+    const [submitting, setSubmitting] = useState(false);
+    const [testing, setTesting] = useState(false);
+
+    const [formData, setFormData] = useState({
+        name: "",
+        display_name: "",
+        email: "",
+        provider: "smtp",
+        daily_limit: 100,
+        hourly_limit: 20,
+        signature: "",
+        settings: {
+            host: "",
+            port: 587,
+            username: "",
+            password: "",
+            encryption: "tls",
+        },
+    });
+
+    const getProviderDefaults = (prov) => {
+        if (prov === "gmail") {
+            return { host: "smtp.gmail.com", port: 587, encryption: "tls" };
+        }
+        if (prov === "outlook") {
+            return { host: "smtp.office365.com", port: 587, encryption: "tls" };
+        }
+        return { host: "", port: 587, encryption: "tls" };
+    };
+
+    const handleGoogleOAuthRedirect = () => {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+        const redirectUrl = `${apiUrl.replace(/\/$/, "")}/oauth/google/redirect`;
+        window.location.href = redirectUrl;
+    };
+
+    const handleSelectProvider = (prov) => {
+        if (prov === "gmail") {
+            handleGoogleOAuthRedirect();
+            return;
+        }
+        const defaults = getProviderDefaults(prov);
+        setFormData((prev) => ({
+            ...prev,
+            provider: prov,
+            settings: {
+                ...prev.settings,
+                host: defaults.host,
+                port: defaults.port,
+                encryption: defaults.encryption,
+            },
+        }));
+    };
+
+    useEffect(() => {
+        if (sender) {
+            setFormData({
+                name: sender.name || "",
+                display_name: sender.display_name || "",
+                email: sender.email || "",
+                provider: sender.provider || "smtp",
+                daily_limit: sender.daily_limit || 100,
+                hourly_limit: sender.hourly_limit || 20,
+                signature: sender.signature || "",
+                settings: {
+                    host: sender.sender_account?.settings?.host || "",
+                    port: sender.sender_account?.settings?.port || 587,
+                    username: sender.sender_account?.settings?.username || "",
+                    password: sender.sender_account?.settings?.password || "",
+                    encryption: sender.sender_account?.settings?.encryption || "tls",
+                },
+            });
+        } else {
+            const defaults = getProviderDefaults(initialProvider);
+            setFormData({
+                name: "",
+                display_name: "",
+                email: "",
+                provider: initialProvider,
+                daily_limit: 100,
+                hourly_limit: 20,
+                signature: "",
+                settings: {
+                    host: defaults.host,
+                    port: defaults.port,
+                    username: "",
+                    password: "",
+                    encryption: defaults.encryption,
+                },
+            });
+        }
+    }, [sender, show, initialProvider]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleSettingChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                [name]: value,
+            },
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            setSubmitting(true);
+            const payload = {
+                ...formData,
+                daily_limit: parseInt(formData.daily_limit, 10),
+                hourly_limit: parseInt(formData.hourly_limit, 10),
+                settings: {
+                    ...formData.settings,
+                    port: parseInt(formData.settings.port, 10),
+                },
+            };
+
+            if (isEdit) {
+                await updateEmailSender(sender.id, payload);
+                toast.success("Sender updated successfully!");
+            } else {
+                await createEmailSender(payload);
+                toast.success("Sender created successfully!");
+            }
+            onSaved();
+            onHide();
+        } catch (error) {
+            const msg = error.response?.data?.message || "Failed to save email sender";
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleTestConnection = async () => {
+        if (!sender?.id) {
+            toast.error("Please save the sender first before testing connection.");
+            return;
+        }
+        try {
+            setTesting(true);
+            const res = await testSenderConnection(sender.id);
+            if (res.data.success) {
+                toast.success("Connection test successful!");
+            } else {
+                toast.error(res.data.message || "Connection test failed");
+            }
+        } catch (error) {
+            toast.error("Connection test failed");
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    return (
+        <Modal show={show} onHide={onHide} size="lg" centered>
+            <Modal.Header closeButton className="border-0 pb-0">
+                <Modal.Title className="fw-bold">
+                    {isEdit ? "Edit Email Sender" : "Add Email Sender Account"}
+                </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleSubmit}>
+                <Modal.Body className="pt-3">
+                    {/* Hunter.io Style Quick Provider Selector */}
+                    <div className="mb-4 bg-light p-3 rounded border">
+                        <label className="fw-bold small text-dark d-block mb-2">Connect Email Account Type</label>
+                        <div className="d-flex flex-wrap gap-2">
+                            <Button
+                                variant={formData.provider === "gmail" ? "primary" : "outline-secondary"}
+                                type="button"
+                                size="sm"
+                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                style={{ borderColor: formData.provider === "gmail" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "gmail" ? "2px" : "1px" }}
+                                onClick={() => handleSelectProvider("gmail")}
+                            >
+                                <FcGoogle size={18} />
+                                <span>Sign in with Google</span>
+                            </Button>
+
+                            <Button
+                                variant={formData.provider === "outlook" ? "primary" : "outline-secondary"}
+                                type="button"
+                                size="sm"
+                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                style={{ borderColor: formData.provider === "outlook" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "outlook" ? "2px" : "1px" }}
+                                onClick={() => handleSelectProvider("outlook")}
+                            >
+                                <BsMicrosoft size={16} className="text-primary" />
+                                <span>Sign in with Microsoft</span>
+                            </Button>
+
+                            <Button
+                                variant={formData.provider === "smtp" ? "primary" : "outline-secondary"}
+                                type="button"
+                                size="sm"
+                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                style={{ borderColor: formData.provider === "smtp" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "smtp" ? "2px" : "1px" }}
+                                onClick={() => handleSelectProvider("smtp")}
+                            >
+                                <FiPlus size={16} />
+                                <span>Connect SMTP/IMAP</span>
+                            </Button>
+                        </div>
+                    </div>
+
+                    <Row className="g-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Account Name *</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="name"
+                                    placeholder="e.g. Sales Outbound"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Sender Display Name *</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="display_name"
+                                    placeholder="e.g. John from WPThrust"
+                                    value={formData.display_name}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Email Address *</Form.Label>
+                                <Form.Control
+                                    type="email"
+                                    name="email"
+                                    placeholder="john@example.com"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Provider *</Form.Label>
+                                <Form.Select
+                                    name="provider"
+                                    value={formData.provider}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="smtp">SMTP Server</option>
+                                    <option value="gmail">Google / Gmail</option>
+                                    <option value="outlook">Outlook / Microsoft 365</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Daily Sending Limit *</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    name="daily_limit"
+                                    min="1"
+                                    value={formData.daily_limit}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <Form.Text className="text-muted small">Max emails allowed per day</Form.Text>
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Hourly Sending Limit *</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    name="hourly_limit"
+                                    min="1"
+                                    value={formData.hourly_limit}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <Form.Text className="text-muted small">Max emails allowed per hour</Form.Text>
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={12}>
+                            <hr className="my-2" />
+                            <h6 className="fw-bold mb-3 text-primary">SMTP / Provider Settings</h6>
+                        </Col>
+
+                        <Col md={8}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">SMTP Host *</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="host"
+                                    placeholder="smtp.gmail.com or mail.domain.com"
+                                    value={formData.settings.host}
+                                    onChange={handleSettingChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={4}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Port *</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    name="port"
+                                    placeholder="587"
+                                    value={formData.settings.port}
+                                    onChange={handleSettingChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">SMTP Username *</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="username"
+                                    placeholder="your-email@domain.com"
+                                    value={formData.settings.username}
+                                    onChange={handleSettingChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">SMTP Password *</Form.Label>
+                                <Form.Control
+                                    type="password"
+                                    name="password"
+                                    placeholder="App Password or SMTP password"
+                                    value={formData.settings.password}
+                                    onChange={handleSettingChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Encryption *</Form.Label>
+                                <Form.Select
+                                    name="encryption"
+                                    value={formData.settings.encryption}
+                                    onChange={handleSettingChange}
+                                    required
+                                >
+                                    <option value="tls">TLS (Port 587)</option>
+                                    <option value="ssl">SSL (Port 465)</option>
+                                </Form.Select>
+                            </Form.Group>
+                        </Col>
+
+                        <Col md={12}>
+                            <Form.Group>
+                                <Form.Label className="fw-semibold small">Email Signature (Optional)</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={3}
+                                    name="signature"
+                                    placeholder="Best regards, John Doe&#10;Sales Director"
+                                    value={formData.signature}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                </Modal.Body>
+                <Modal.Footer className="border-0 pt-0">
+                    {isEdit && (
+                        <Button
+                            variant="outline-info"
+                            type="button"
+                            onClick={handleTestConnection}
+                            disabled={testing || submitting}
+                            className="me-auto"
+                        >
+                            {testing ? <Spinner size="sm" animation="border" /> : "Test Connection"}
+                        </Button>
+                    )}
+                    <Button variant="light" onClick={onHide} disabled={submitting}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" type="submit" disabled={submitting}>
+                        {submitting ? (
+                            <>
+                                <Spinner size="sm" animation="border" className="me-2" />
+                                Saving...
+                            </>
+                        ) : isEdit ? (
+                            "Update Sender"
+                        ) : (
+                            "Save Sender"
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Form>
+        </Modal>
+    );
+}
