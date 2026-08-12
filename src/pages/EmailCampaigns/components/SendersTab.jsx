@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import toast from "react-hot-toast";
 import { getEmailSenders, deleteEmailSender, testSenderConnection } from "../../../api/emailSenders";
+import axiosClient from "../../../api/axios";
 import SenderModal from "./SenderModal";
 import SendTestEmailModal from "./SendTestEmailModal";
 import Pagination from "../../../components/ui/Pagination";
@@ -48,10 +49,18 @@ export default function SendersTab() {
         }
     }, [search, providerFilter]);
 
-    const handleGoogleOAuthRedirect = () => {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
-        const redirectUrl = `${apiUrl.replace(/\/$/, "")}/oauth/google/redirect`;
-        window.location.href = redirectUrl;
+    const handleGoogleOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/google/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Google authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "GOOGLE_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
     };
 
     const handleAddSender = (prov = "smtp") => {

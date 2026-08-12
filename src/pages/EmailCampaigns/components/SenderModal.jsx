@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import { FiServer, FiPlus } from "react-icons/fi";
 import { createEmailSender, updateEmailSender, testSenderConnection } from "../../../api/emailSenders";
+import axiosClient from "../../../api/axios";
 
 export default function SenderModal({ show, onHide, sender = null, initialProvider = "smtp", onSaved }) {
     const isEdit = Boolean(sender);
@@ -38,10 +39,18 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
         return { host: "", port: 587, encryption: "tls" };
     };
 
-    const handleGoogleOAuthRedirect = () => {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
-        const redirectUrl = `${apiUrl.replace(/\/$/, "")}/oauth/google/redirect`;
-        window.location.href = redirectUrl;
+    const handleGoogleOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/google/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Google authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "GOOGLE_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
     };
 
     const handleSelectProvider = (prov) => {

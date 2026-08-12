@@ -195,63 +195,102 @@ export default function BusinessDetails() {
 
                                 <div className="card shadow-sm mb-4">
 
-                                    <div className="card-header">
+                                    <div className="card-header d-flex justify-content-between align-items-center">
 
-                                        Website Audit
+                                        <span className="fw-bold">Mobile PageSpeed Audit</span>
+
+                                        <button
+                                            className="btn btn-sm btn-outline-primary fw-semibold"
+                                            onClick={async () => {
+                                                const toast = (await import("react-hot-toast")).default;
+                                                const rawWebsite = (business?.website || "").trim();
+                                                if (!rawWebsite || rawWebsite === "-" || rawWebsite.toLowerCase() === "n/a" || rawWebsite.toLowerCase() === "null") {
+                                                    toast.error("Please add a valid website URL to run PageSpeed audit.");
+                                                    return;
+                                                }
+                                                try {
+                                                    const { fetchBusinessPsi } = await import("../../api/business");
+                                                    await fetchBusinessPsi(id);
+                                                    toast.success("PageSpeed Insights audit dispatched in background!");
+                                                    loadBusiness();
+                                                } catch (err) {
+                                                    toast.error(err.response?.data?.message || "Failed to trigger PSI audit");
+                                                }
+                                            }}
+                                        >
+                                            ⚡ Run Audit
+                                        </button>
 
                                     </div>
 
                                     <div className="card-body">
 
-                                        <p>
+                                        <div className="row align-items-center mb-3">
+                                            <div className="col-sm-6">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className={`badge fs-5 px-3 py-2 ${
+                                                        Number(business.audit?.mobile_pagespeed) >= 90 ? 'bg-success' :
+                                                        Number(business.audit?.mobile_pagespeed) >= 50 ? 'bg-warning text-dark' :
+                                                        business.audit?.mobile_pagespeed ? 'bg-danger' : 'bg-secondary'
+                                                    }`}>
+                                                        {business.audit?.mobile_pagespeed ? `${business.audit.mobile_pagespeed} / 100` : 'N/A'}
+                                                    </span>
+                                                    <span className="text-muted small">Mobile Score</span>
+                                                </div>
+                                            </div>
+                                            <div className="col-sm-6 text-sm-end mt-2 mt-sm-0">
+                                                <small className="text-muted">
+                                                    Status: <span className="badge bg-info text-dark">{business.audit?.psi_status || 'pending'}</span>
+                                                </small>
+                                            </div>
+                                        </div>
 
-                                            <strong>Google Rating:</strong>
+                                        <div className="row g-2 mb-3 small">
+                                            <div className="col-6 col-md-4">
+                                                <div className="p-2 border rounded bg-light">
+                                                    <div className="text-muted">FCP</div>
+                                                    <strong className="text-dark">{business.audit?.mobile_fcp || '-'}</strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-6 col-md-4">
+                                                <div className="p-2 border rounded bg-light">
+                                                    <div className="text-muted">LCP</div>
+                                                    <strong className="text-dark">{business.audit?.mobile_lcp || '-'}</strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-6 col-md-4">
+                                                <div className="p-2 border rounded bg-light">
+                                                    <div className="text-muted">TBT</div>
+                                                    <strong className="text-dark">{business.audit?.mobile_tbt || '-'}</strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-6 col-md-4">
+                                                <div className="p-2 border rounded bg-light">
+                                                    <div className="text-muted">CLS</div>
+                                                    <strong className="text-dark">{business.audit?.mobile_cls || '-'}</strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-6 col-md-4">
+                                                <div className="p-2 border rounded bg-light">
+                                                    <div className="text-muted">Speed Index</div>
+                                                    <strong className="text-dark">{business.audit?.mobile_speed_index || '-'}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                            {" "}
-
-                                            {business.audit?.average_rating}
-
-                                        </p>
-
-                                        <p>
-
-                                            <strong>Reviews:</strong>
-
-                                            {" "}
-
-                                            {business.audit?.review_count}
-
-                                        </p>
-
-                                        <p>
-
-                                            <strong>Mobile PageSpeed:</strong>
-
-                                            {" "}
-
-                                            {business.audit?.mobile_pagespeed}
-
-                                        </p>
-
-                                        <p>
-
-                                            <strong>Desktop PageSpeed:</strong>
-
-                                            {" "}
-
-                                            {business.audit?.desktop_pagespeed}
-
-                                        </p>
-
-                                        <p>
-
-                                            <strong>SEO:</strong>
-
-                                            {" "}
-
-                                            {business.audit?.mobile_seo}
-
-                                        </p>
+                                        {business.audit?.mobile_screenshot_url && (
+                                            <div className="mt-3 text-center">
+                                                <small className="text-muted d-block mb-1">Mobile Website Screenshot</small>
+                                                <a href={business.audit.mobile_screenshot_url} target="_blank" rel="noreferrer">
+                                                    <img
+                                                        src={business.audit.mobile_screenshot_url}
+                                                        alt="Mobile Screenshot"
+                                                        className="img-fluid rounded border shadow-sm"
+                                                        style={{ maxHeight: "220px", objectFit: "cover" }}
+                                                    />
+                                                </a>
+                                            </div>
+                                        )}
 
                                     </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Nav, Tab } from "react-bootstrap";
 import { FiSend, FiMail, FiUsers, FiSliders } from "react-icons/fi";
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -7,7 +7,18 @@ import SendersTab from "./components/SendersTab";
 import TemplatesTab from "./components/TemplatesTab";
 
 export default function EmailCampaigns() {
-    const [activeTab, setActiveTab] = useState("campaigns");
+    const [activeTab, setActiveTab] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("tab") || "campaigns";
+    });
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab");
+        if (tab && (tab === "senders" || tab === "templates" || tab === "campaigns")) {
+            setActiveTab(tab);
+        }
+    }, []);
 
     return (
         <DashboardLayout title="Email Campaigns">

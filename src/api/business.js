@@ -103,3 +103,7 @@ export const assignLeads = (businessIds, assignedUserId) => {
     });
 
 };
+
+export const fetchBusinessPsi = (id) => {
+    return axiosClient.post(`/businesses/${id}/fetch-psi`);
+};
