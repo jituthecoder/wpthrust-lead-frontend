@@ -296,7 +296,7 @@ export default function CampaignDetails() {
 
             {/* Performance Stats Cards */}
             <Row className="g-3 mb-4">
-                <Col sm={6} lg={3}>
+                <Col sm={6} lg={2}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Total Leads</small>
@@ -306,7 +306,7 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={3}>
+                <Col sm={6} lg={2}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Sent Emails</small>
@@ -316,17 +316,37 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={3}>
+                <Col sm={6} lg={2}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Pending / In Queue</small>
+                            <small className="text-muted fw-semibold text-uppercase">Open Rate</small>
+                            <h2 className="fw-bold text-success mt-1 mb-0">{campaign.open_rate ?? 0}%</h2>
+                            <small className="text-muted">{campaign.opened_count || 0} emails opened</small>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col sm={6} lg={2}>
+                    <Card className="border-0 shadow-sm h-100 bg-white">
+                        <Card.Body>
+                            <small className="text-muted fw-semibold text-uppercase">Click Rate</small>
+                            <h2 className="fw-bold text-primary mt-1 mb-0">{campaign.click_rate ?? 0}%</h2>
+                            <small className="text-muted">{campaign.clicked_count || 0} links clicked</small>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col sm={6} lg={2}>
+                    <Card className="border-0 shadow-sm h-100 bg-white">
+                        <Card.Body>
+                            <small className="text-muted fw-semibold text-uppercase">Pending Queue</small>
                             <h2 className="fw-bold text-primary mt-1 mb-0">{(stats?.pending || 0) + (stats?.processing || 0)}</h2>
                             <small className="text-muted">Awaiting dispatch</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={3}>
+                <Col sm={6} lg={2}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Failed Deliveries</small>

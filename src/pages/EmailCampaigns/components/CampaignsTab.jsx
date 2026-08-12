@@ -180,13 +180,15 @@ export default function CampaignsTab() {
                                     <th>Status</th>
                                     <th>Leads</th>
                                     <th>Progress</th>
+                                    <th>Open Rate</th>
+                                    <th>Click Rate</th>
                                     <th className="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {campaigns.map((cmp) => {
                                     const total = cmp.total_leads || 0;
-                                    const sent = cmp.sent_leads || 0;
+                                    const sent = cmp.sent_leads || cmp.sent_count || 0;
                                     const progressPct = total > 0 ? Math.round((sent / total) * 100) : 0;
 
                                     return (
@@ -212,7 +214,7 @@ export default function CampaignsTab() {
                                             <td>
                                                 <span className="fw-bold text-dark">{cmp.total_leads || 0}</span>
                                             </td>
-                                            <td style={{ minWidth: "150px" }}>
+                                            <td style={{ minWidth: "130px" }}>
                                                 <div className="d-flex align-items-center gap-2">
                                                     <ProgressBar
                                                         now={progressPct}
@@ -221,6 +223,16 @@ export default function CampaignsTab() {
                                                     />
                                                     <small className="text-muted fw-semibold">{progressPct}%</small>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <Badge bg="success" className="px-2 py-1">
+                                                    {cmp.open_rate ?? 0}%
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <Badge bg="primary" className="px-2 py-1">
+                                                    {cmp.click_rate ?? 0}%
+                                                </Badge>
                                             </td>
                                             <td className="text-end">
                                                 <div className="d-inline-flex gap-1">

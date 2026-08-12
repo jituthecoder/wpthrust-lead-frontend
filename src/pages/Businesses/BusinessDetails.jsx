@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
-import { getLead } from "../../api/business";
+import { getLead, fetchBusinessPsi } from "../../api/business";
 
 export default function BusinessDetails() {
 
@@ -202,14 +203,12 @@ export default function BusinessDetails() {
                                         <button
                                             className="btn btn-sm btn-outline-primary fw-semibold"
                                             onClick={async () => {
-                                                const toast = (await import("react-hot-toast")).default;
                                                 const rawWebsite = (business?.website || "").trim();
                                                 if (!rawWebsite || rawWebsite === "-" || rawWebsite.toLowerCase() === "n/a" || rawWebsite.toLowerCase() === "null") {
                                                     toast.error("Please add a valid website URL to run PageSpeed audit.");
                                                     return;
                                                 }
                                                 try {
-                                                    const { fetchBusinessPsi } = await import("../../api/business");
                                                     await fetchBusinessPsi(id);
                                                     toast.success("PageSpeed Insights audit dispatched in background!");
                                                     loadBusiness();
