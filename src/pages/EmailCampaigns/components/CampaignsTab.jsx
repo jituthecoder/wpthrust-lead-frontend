@@ -188,8 +188,8 @@ export default function CampaignsTab() {
                             <tbody>
                                 {campaigns.map((cmp) => {
                                     const total = cmp.total_leads || 0;
-                                    const sent = cmp.sent_leads || cmp.sent_count || 0;
-                                    const progressPct = total > 0 ? Math.round((sent / total) * 100) : 0;
+                                    const sent = cmp.sent_count ?? cmp.sent_leads ?? 0;
+                                    const progressPct = cmp.status === "completed" ? 100 : (total > 0 ? Math.min(100, Math.round((sent / total) * 100)) : 0);
 
                                     return (
                                         <tr key={cmp.id}>

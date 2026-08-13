@@ -310,7 +310,7 @@ export default function CampaignDetails() {
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Sent Emails</small>
-                            <h2 className="fw-bold text-success mt-1 mb-0">{stats?.sent || 0}</h2>
+                            <h2 className="fw-bold text-success mt-1 mb-0">{stats?.sent ?? campaign?.sent_count ?? 0}</h2>
                             <small className="text-muted">Successfully delivered</small>
                         </Card.Body>
                     </Card>
@@ -320,8 +320,8 @@ export default function CampaignDetails() {
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Open Rate</small>
-                            <h2 className="fw-bold text-success mt-1 mb-0">{campaign.open_rate ?? 0}%</h2>
-                            <small className="text-muted">{campaign.opened_count || 0} emails opened</small>
+                            <h2 className="fw-bold text-success mt-1 mb-0">{stats?.open_rate ?? campaign?.open_rate ?? 0}%</h2>
+                            <small className="text-muted">{stats?.opened_count ?? campaign?.opened_count ?? 0} emails opened</small>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -330,8 +330,8 @@ export default function CampaignDetails() {
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Click Rate</small>
-                            <h2 className="fw-bold text-primary mt-1 mb-0">{campaign.click_rate ?? 0}%</h2>
-                            <small className="text-muted">{campaign.clicked_count || 0} links clicked</small>
+                            <h2 className="fw-bold text-primary mt-1 mb-0">{stats?.click_rate ?? campaign?.click_rate ?? 0}%</h2>
+                            <small className="text-muted">{stats?.clicked_count ?? campaign?.clicked_count ?? 0} links clicked</small>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -362,13 +362,13 @@ export default function CampaignDetails() {
                 <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <span className="fw-bold text-dark">Campaign Progress</span>
-                        <span className="fw-bold text-primary">{stats?.progress || 0}% Completed</span>
+                        <span className="fw-bold text-primary">{campaign?.status === "completed" ? 100 : (stats?.progress || 0)}% Completed</span>
                     </div>
                     <ProgressBar
-                        now={stats?.progress || 0}
-                        variant={stats?.status === "completed" ? "info" : "primary"}
+                        now={campaign?.status === "completed" ? 100 : (stats?.progress || 0)}
+                        variant={campaign?.status === "completed" ? "info" : "primary"}
                         style={{ height: "10px" }}
-                        animated={stats?.status === "running"}
+                        animated={campaign?.status === "running"}
                     />
                 </Card.Body>
             </Card>

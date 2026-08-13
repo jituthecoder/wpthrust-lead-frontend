@@ -141,9 +141,10 @@ export default function LeadToolbar({ filters, setFilters }) {
                             className="form-select-sm py-2"
                         >
                             <option value="">All Users</option>
+                            <option value="unassigned">🚫 Unassigned Leads</option>
                             {users.map((user) => (
                                 <option key={user.id} value={user.id}>
-                                    {user.name}
+                                    👤 {user.name}
                                 </option>
                             ))}
                         </Form.Select>

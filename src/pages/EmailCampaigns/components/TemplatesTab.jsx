@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Button, Form, Badge, Spinner, Table } from "react-bootstrap";
-import { FiPlus, FiSearch, FiEdit3, FiTrash2, FiCopy, FiCheckCircle, FiEye } from "react-icons/fi";
+import { Row, Col, Card, Button, Form, Badge, Spinner } from "react-bootstrap";
+import { FiPlus, FiSearch, FiEdit3, FiTrash2, FiCopy, FiSend } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getEmailTemplates, deleteEmailTemplate, duplicateEmailTemplate, publishEmailTemplate } from "../../../api/emailTemplates";
 import TemplateModal from "./TemplateModal";
+import SendTestEmailModal from "./SendTestEmailModal";
 import Pagination from "../../../components/ui/Pagination";
 
 export default function TemplatesTab() {
@@ -16,6 +17,8 @@ export default function TemplatesTab() {
 
     const [showModal, setShowModal] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+    const [showTestModal, setShowTestModal] = useState(false);
 
     const loadTemplates = async (page = 1) => {
         try {
@@ -114,10 +117,16 @@ export default function TemplatesTab() {
                     </Form.Select>
                 </div>
 
-                <Button variant="primary" onClick={handleCreate} className="d-flex align-items-center gap-2">
-                    <FiPlus />
-                    <span>Create Template</span>
-                </Button>
+                <div className="d-flex gap-2">
+                    <Button variant="outline-primary" onClick={() => setShowTestModal(true)} className="d-flex align-items-center gap-2">
+                        <FiSend />
+                        <span>Send Test Email</span>
+                    </Button>
+                    <Button variant="primary" onClick={handleCreate} className="d-flex align-items-center gap-2">
+                        <FiPlus />
+                        <span>Create Template</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Grid / List */}
@@ -233,6 +242,11 @@ export default function TemplatesTab() {
                 onHide={() => setShowModal(false)}
                 template={selectedTemplate}
                 onSaved={() => loadTemplates(pagination.current_page || 1)}
+            />
+
+            <SendTestEmailModal
+                show={showTestModal}
+                onHide={() => setShowTestModal(false)}
             />
         </div>
     );
