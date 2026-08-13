@@ -1,29 +1,76 @@
 import { useEffect, useState } from "react";
-import { Modal, Button, Form, Spinner, Table } from "react-bootstrap";
+import { Modal, Button, Form, Spinner, Table, Row, Col, Badge, Pagination } from "react-bootstrap";
+import { FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { assignCampaignLeads } from "../../../api/emailCampaigns";
-import { getBusinesses } from "../../../api/business";
+import { getBusinesses, getBusinessCategories } from "../../../api/business";
 
 export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned }) {
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(false);
     const [businesses, setBusinesses] = useState([]);
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [categories, setCategories] = useState([]);
+
+    // Map storing full objects of selected leads: { [id]: businessObject }
+    const [selectedMap, setSelectedMap] = useState({});
+
+    // View tab: "all" or "selected"
+    const [viewMode, setViewMode] = useState("all");
+
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(20);
+    const [lastPage, setLastPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Filter states
     const [search, setSearch] = useState("");
+    const [psiFilter, setPsiFilter] = useState("");
+    const [hasScreenshot, setHasScreenshot] = useState("");
+    const [hasWebsite, setHasWebsite] = useState("");
+    const [category, setCategory] = useState("");
+
+    useEffect(() => {
+        if (show) {
+            loadCategories();
+            setSelectedMap({});
+            setViewMode("all");
+            setPage(1);
+        }
+    }, [show]);
 
     useEffect(() => {
         if (show && campaignId) {
-            loadLeads("");
-            setSelectedIds([]);
+            loadLeads();
         }
-    }, [show, campaignId]);
+    }, [show, campaignId, page, perPage, search, psiFilter, hasScreenshot, hasWebsite, category]);
 
-    const loadLeads = async (searchQuery = "") => {
+    const loadCategories = async () => {
+        try {
+            const res = await getBusinessCategories();
+            setCategories(res.data.data || []);
+        } catch (err) {
+            console.error("Failed to load categories", err);
+        }
+    };
+
+    const loadLeads = async () => {
         try {
             setLoading(true);
-            const res = await getBusinesses({ search: searchQuery, page: 1, per_page: 100 });
-            const list = (res.data.data?.data || []).filter((b) => Boolean(b.email));
+            const res = await getBusinesses({
+                search,
+                psi_filter: psiFilter,
+                has_screenshot: hasScreenshot,
+                has_website: hasWebsite,
+                category,
+                page,
+                per_page: perPage,
+            });
+            const paginatedData = res.data.data;
+            const list = (paginatedData?.data || []).filter((b) => Boolean(b.email));
             setBusinesses(list);
+            setLastPage(paginatedData?.last_page || 1);
+            setTotalCount(paginatedData?.total || list.length);
         } catch (error) {
             toast.error("Failed to load business directory");
         } finally {
@@ -31,23 +78,75 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
         }
     };
 
-    const handleSearch = (e) => {
-        const query = e.target.value;
-        setSearch(query);
-        loadLeads(query);
+    const toggleSelect = (biz) => {
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            if (next[biz.id]) {
+                delete next[biz.id];
+            } else {
+                next[biz.id] = biz;
+            }
+            return next;
+        });
     };
 
-    const toggleSelect = (id) => {
-        setSelectedIds((prev) =>
-            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-        );
+    const toggleSelectAllPage = () => {
+        const currentPageIds = businesses.map((b) => b.id);
+        const allPageSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedMap[id]);
+
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            if (allPageSelected) {
+                currentPageIds.forEach((id) => delete next[id]);
+            } else {
+                businesses.forEach((biz) => {
+                    next[biz.id] = biz;
+                });
+            }
+            return next;
+        });
     };
 
-    const toggleSelectAll = () => {
-        const allIds = businesses.map((b) => b.id);
-        const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.includes(id));
-        setSelectedIds(allSelected ? [] : allIds);
+    const selectAllFilteredLeads = async () => {
+        try {
+            toast.loading("Selecting all matching leads across pages...", { id: "select_all" });
+            const res = await getBusinesses({
+                search,
+                psi_filter: psiFilter,
+                has_screenshot: hasScreenshot,
+                has_website: hasWebsite,
+                category,
+                page: 1,
+                per_page: 500, // fetch larger chunk of filtered leads
+            });
+            const list = (res.data.data?.data || []).filter((b) => Boolean(b.email));
+            setSelectedMap((prev) => {
+                const next = { ...prev };
+                list.forEach((biz) => {
+                    next[biz.id] = biz;
+                });
+                return next;
+            });
+            toast.success(`Selected ${list.length} target leads!`, { id: "select_all" });
+        } catch (err) {
+            toast.error("Failed to select all leads", { id: "select_all" });
+        }
     };
+
+    const removeSelectedLead = (id) => {
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    };
+
+    const clearAllSelected = () => {
+        setSelectedMap({});
+    };
+
+    const selectedIds = Object.keys(selectedMap).map(Number);
+    const selectedList = Object.values(selectedMap);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -59,7 +158,7 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
         try {
             setSubmitting(true);
             await assignCampaignLeads(campaignId, selectedIds);
-            toast.success("Business leads assigned to campaign!");
+            toast.success(`${selectedIds.length} target lead(s) assigned to campaign!`);
             onAssigned();
             onHide();
         } catch (error) {
@@ -70,98 +169,369 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
         }
     };
 
+    const resetFilters = () => {
+        setSearch("");
+        setPsiFilter("");
+        setHasScreenshot("");
+        setHasWebsite("");
+        setCategory("");
+        setPage(1);
+    };
+
     return (
-        <Modal show={show} onHide={onHide} size="lg" centered>
+        <Modal show={show} onHide={onHide} size="xl" centered>
             <Modal.Header closeButton className="border-0">
-                <Modal.Title className="fw-bold">Assign Business Leads to Campaign</Modal.Title>
+                <Modal.Title className="fw-bold d-flex align-items-center gap-2">
+                    <FiZap className="text-warning" />
+                    <span>Target Lead Selection & Scalable Management</span>
+                </Modal.Title>
             </Modal.Header>
+
             <Form onSubmit={handleSubmit}>
                 <Modal.Body className="pt-0">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                        <Form.Control
-                            type="text"
-                            placeholder="Search lead directory..."
-                            value={search}
-                            onChange={handleSearch}
-                            style={{ maxWidth: "300px" }}
-                        />
-                        <Button variant="outline-secondary" size="sm" onClick={toggleSelectAll}>
-                            {businesses.length > 0 && businesses.every((b) => selectedIds.includes(b.id))
-                                ? "Deselect All"
-                                : "Select All"}
-                        </Button>
+                    {/* View Mode Selector Tabs */}
+                    <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div className="btn-group">
+                            <Button
+                                variant={viewMode === "all" ? "primary" : "outline-secondary"}
+                                size="sm"
+                                onClick={() => setViewMode("all")}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                <FiList />
+                                <span>Lead Directory ({totalCount})</span>
+                            </Button>
+                            <Button
+                                variant={viewMode === "selected" ? "success" : "outline-success"}
+                                size="sm"
+                                onClick={() => setViewMode("selected")}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                <FiCheckCircle />
+                                <span>Selected Target Leads ({selectedIds.length})</span>
+                            </Button>
+                        </div>
+
+                        {viewMode === "selected" && selectedIds.length > 0 && (
+                            <Button variant="outline-danger" size="sm" onClick={clearAllSelected}>
+                                Clear All Selected
+                            </Button>
+                        )}
                     </div>
 
-                    {loading ? (
-                        <div className="text-center py-4">
-                            <Spinner animation="border" variant="primary" />
+                    {/* Filter Bar (Shown in Directory View Mode) */}
+                    {viewMode === "all" && (
+                        <div className="bg-light p-3 rounded border mb-3">
+                            <Row className="g-2">
+                                <Col md={3}>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Search name, email, website..."
+                                        value={search}
+                                        onChange={(e) => {
+                                            setSearch(e.target.value);
+                                            setPage(1);
+                                        }}
+                                        size="sm"
+                                    />
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={psiFilter}
+                                        onChange={(e) => {
+                                            setPsiFilter(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All PSI Scores</option>
+                                        <option value="less_50">🔴 Poor Score (&lt; 50)</option>
+                                        <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
+                                        <option value="good_90">🟢 Good Score (≥ 90)</option>
+                                        <option value="not_audited">⚪ Not Audited Yet</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={hasScreenshot}
+                                        onChange={(e) => {
+                                            setHasScreenshot(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Screenshots</option>
+                                        <option value="yes">📷 Has PSI Screenshot</option>
+                                        <option value="no">🚫 Missing Screenshot</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={hasWebsite}
+                                        onChange={(e) => {
+                                            setHasWebsite(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Websites</option>
+                                        <option value="yes">🌐 Has Website</option>
+                                        <option value="no">🚫 No Website</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={category}
+                                        onChange={(e) => {
+                                            setCategory(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Categories</option>
+                                        {categories.map((cat, idx) => (
+                                            <option key={idx} value={cat}>
+                                                {cat}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </Col>
+                                <Col md={1} className="d-flex align-items-center justify-content-end">
+                                    <Button variant="outline-secondary" size="sm" onClick={resetFilters} className="w-100">
+                                        Reset
+                                    </Button>
+                                </Col>
+                            </Row>
                         </div>
-                    ) : businesses.length === 0 ? (
-                        <div className="alert alert-warning text-center">
-                            No eligible business leads with email addresses found.
-                        </div>
-                    ) : (
-                        <div className="table-responsive border rounded" style={{ maxHeight: "350px", overflowY: "auto" }}>
-                            <Table hover size="sm" className="align-middle mb-0">
-                                <thead className="bg-light sticky-top">
-                                    <tr>
-                                        <th style={{ width: "40px" }}>
-                                            <Form.Check
-                                                type="checkbox"
-                                                checked={businesses.length > 0 && businesses.every((b) => selectedIds.includes(b.id))}
-                                                onChange={toggleSelectAll}
-                                            />
-                                        </th>
-                                        <th>Business Name</th>
-                                        <th>Email</th>
-                                        <th>City / Country</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {businesses.map((biz) => {
-                                        const isSelected = selectedIds.includes(biz.id);
-                                        return (
-                                            <tr
-                                                key={biz.id}
-                                                onClick={() => toggleSelect(biz.id)}
-                                                style={{ cursor: "pointer" }}
-                                                className={isSelected ? "table-active" : ""}
-                                            >
-                                                <td onClick={(e) => e.stopPropagation()}>
+                    )}
+
+                    {/* Content Table for ALL DIRECTORY LEADS */}
+                    {viewMode === "all" && (
+                        <div>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <small className="text-muted fw-semibold">
+                                    Page {page} of {lastPage} — Showing {businesses.length} of {totalCount} matching leads
+                                </small>
+                                <div className="d-flex gap-2">
+                                    <Button variant="outline-primary" size="sm" onClick={toggleSelectAllPage}>
+                                        {businesses.length > 0 && businesses.every((b) => selectedMap[b.id])
+                                            ? "Deselect Page"
+                                            : "Select All on Page"}
+                                    </Button>
+                                    <Button variant="outline-success" size="sm" onClick={selectAllFilteredLeads}>
+                                        <FiCheckSquare className="me-1" />
+                                        Select All {totalCount} Filtered Leads
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {loading ? (
+                                <div className="text-center py-4">
+                                    <Spinner animation="border" variant="primary" />
+                                </div>
+                            ) : businesses.length === 0 ? (
+                                <div className="alert alert-warning text-center">
+                                    No eligible business leads matching these filter criteria found.
+                                </div>
+                            ) : (
+                                <div className="table-responsive border rounded" style={{ maxHeight: "350px", overflowY: "auto" }}>
+                                    <Table hover size="sm" className="align-middle mb-0">
+                                        <thead className="bg-light sticky-top">
+                                            <tr>
+                                                <th style={{ width: "40px" }}>
                                                     <Form.Check
                                                         type="checkbox"
-                                                        checked={isSelected}
-                                                        onChange={() => toggleSelect(biz.id)}
+                                                        checked={businesses.length > 0 && businesses.every((b) => selectedMap[b.id])}
+                                                        onChange={toggleSelectAllPage}
                                                     />
-                                                </td>
-                                                <td className="fw-medium text-dark">{biz.business_name}</td>
-                                                <td className="text-primary">{biz.email}</td>
-                                                <td className="text-muted small">
-                                                    {biz.city || ""}{biz.country ? `, ${biz.country}` : ""}
-                                                </td>
+                                                </th>
+                                                <th>Business Name</th>
+                                                <th>Category</th>
+                                                <th>PSI Score</th>
+                                                <th>Screenshot</th>
+                                                <th>Website</th>
+                                                <th>Email</th>
                                             </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </Table>
+                                        </thead>
+                                        <tbody>
+                                            {businesses.map((biz) => {
+                                                const isSelected = Boolean(selectedMap[biz.id]);
+                                                const psiScore = Number(biz.audit?.mobile_pagespeed || 0);
+                                                const hasShot = Boolean(biz.audit?.mobile_screenshot_path);
+
+                                                return (
+                                                    <tr
+                                                        key={biz.id}
+                                                        onClick={() => toggleSelect(biz)}
+                                                        style={{ cursor: "pointer" }}
+                                                        className={isSelected ? "table-active" : ""}
+                                                    >
+                                                        <td onClick={(e) => e.stopPropagation()}>
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => toggleSelect(biz)}
+                                                            />
+                                                        </td>
+                                                        <td className="fw-semibold text-dark">{biz.business_name}</td>
+                                                        <td>
+                                                            <Badge bg="light" text="dark" className="border">
+                                                                {biz.category || "General"}
+                                                            </Badge>
+                                                        </td>
+                                                        <td>
+                                                            <Badge
+                                                                bg={
+                                                                    psiScore >= 90
+                                                                        ? "success"
+                                                                        : psiScore >= 50
+                                                                        ? "warning"
+                                                                        : psiScore > 0
+                                                                        ? "danger"
+                                                                        : "secondary"
+                                                                }
+                                                                className="px-2 py-1"
+                                                            >
+                                                                {psiScore > 0 ? `${psiScore} / 100` : "Not Audited"}
+                                                            </Badge>
+                                                        </td>
+                                                        <td>
+                                                            {hasShot ? (
+                                                                <Badge bg="info" className="d-inline-flex align-items-center gap-1">
+                                                                    <FiCamera />
+                                                                    <span>Available</span>
+                                                                </Badge>
+                                                            ) : (
+                                                                <small className="text-muted">-</small>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {biz.website && biz.website !== "-" ? (
+                                                                <small className="text-primary text-truncate d-block" style={{ maxWidth: "140px" }}>
+                                                                    <FiGlobe className="me-1" />
+                                                                    {biz.website}
+                                                                </small>
+                                                            ) : (
+                                                                <small className="text-muted">-</small>
+                                                            )}
+                                                        </td>
+                                                        <td className="text-primary small">{biz.email}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </Table>
+                                </div>
+                            )}
+
+                            {/* Server-Side Pagination Controls */}
+                            <div className="d-flex justify-content-between align-items-center mt-3">
+                                <div className="d-flex align-items-center gap-2">
+                                    <small className="text-muted">Rows per page:</small>
+                                    <Form.Select
+                                        size="sm"
+                                        style={{ width: "80px" }}
+                                        value={perPage}
+                                        onChange={(e) => {
+                                            setPerPage(Number(e.target.value));
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value={15}>15</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                    </Form.Select>
+                                </div>
+
+                                <Pagination size="sm" className="mb-0">
+                                    <Pagination.First disabled={page <= 1} onClick={() => setPage(1)} />
+                                    <Pagination.Prev disabled={page <= 1} onClick={() => setPage((p) => p - 1)} />
+                                    <Pagination.Item active>{page}</Pagination.Item>
+                                    <Pagination.Next disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)} />
+                                    <Pagination.Last disabled={page >= lastPage} onClick={() => setPage(lastPage)} />
+                                </Pagination>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Content Table for SELECTED TARGET LEADS VIEW */}
+                    {viewMode === "selected" && (
+                        <div>
+                            {selectedList.length === 0 ? (
+                                <div className="alert alert-info text-center py-4">
+                                    No target leads selected yet. Switch to the <strong>Lead Directory</strong> tab to select leads across any page.
+                                </div>
+                            ) : (
+                                <div className="table-responsive border rounded" style={{ maxHeight: "380px", overflowY: "auto" }}>
+                                    <Table hover size="sm" className="align-middle mb-0">
+                                        <thead className="bg-light sticky-top">
+                                            <tr>
+                                                <th>Business Name</th>
+                                                <th>Category</th>
+                                                <th>Website</th>
+                                                <th>Email</th>
+                                                <th className="text-end" style={{ width: "90px" }}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedList.map((biz) => (
+                                                <tr key={biz.id}>
+                                                    <td className="fw-semibold text-dark">{biz.business_name}</td>
+                                                    <td>
+                                                        <Badge bg="light" text="dark" className="border">
+                                                            {biz.category || "General"}
+                                                        </Badge>
+                                                    </td>
+                                                    <td>
+                                                        {biz.website && biz.website !== "-" ? (
+                                                            <small className="text-primary text-truncate d-block" style={{ maxWidth: "150px" }}>
+                                                                {biz.website}
+                                                            </small>
+                                                        ) : (
+                                                            <small className="text-muted">-</small>
+                                                        )}
+                                                    </td>
+                                                    <td className="text-primary small">{biz.email}</td>
+                                                    <td className="text-end">
+                                                        <Button
+                                                            variant="outline-danger"
+                                                            size="sm"
+                                                            onClick={() => removeSelectedLead(biz.id)}
+                                                            title="Remove lead from campaign target list"
+                                                        >
+                                                            <FiTrash2 />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
+                            )}
                         </div>
                     )}
                 </Modal.Body>
 
-                <Modal.Footer className="border-0 pt-0">
-                    <Button variant="light" onClick={onHide} disabled={submitting}>
-                        Cancel
-                    </Button>
-                    <Button variant="primary" type="submit" disabled={submitting || selectedIds.length === 0}>
-                        {submitting ? (
-                            <>
-                                <Spinner size="sm" animation="border" className="me-2" />
-                                Assigning...
-                            </>
-                        ) : (
-                            `Assign (${selectedIds.length}) Leads`
-                        )}
-                    </Button>
+                <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
+                    <span className="fw-semibold text-dark">
+                        {selectedIds.length} lead(s) selected
+                    </span>
+                    <div>
+                        <Button variant="light" onClick={onHide} disabled={submitting} className="me-2">
+                            Cancel
+                        </Button>
+                        <Button variant="primary" type="submit" disabled={submitting || selectedIds.length === 0}>
+                            {submitting ? (
+                                <>
+                                    <Spinner size="sm" animation="border" className="me-2" />
+                                    Assigning...
+                                </>
+                            ) : (
+                                `Assign (${selectedIds.length}) Target Leads`
+                            )}
+                        </Button>
+                    </div>
                 </Modal.Footer>
             </Form>
         </Modal>

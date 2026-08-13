@@ -28,6 +28,7 @@ export default function MyLeads() {
 
     const [filters, setFilters] = useState({
         page: 1,
+        per_page: 20,
         search: "",
         status: "",
         category: "",

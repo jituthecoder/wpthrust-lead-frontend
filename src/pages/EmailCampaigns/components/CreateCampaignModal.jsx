@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Modal, Button, Form, Spinner, Row, Col, Badge, Card, Table } from "react-bootstrap";
+import { Modal, Button, Form, Spinner, Row, Col, Badge, Card, Table, Pagination } from "react-bootstrap";
 import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
 import { createEmailCampaign, updateEmailCampaign } from "../../../api/emailCampaigns";
 import { getEmailTemplates } from "../../../api/emailTemplates";
 import { getEmailSenders } from "../../../api/emailSenders";
-import { getBusinesses } from "../../../api/business";
+import { getBusinesses, getBusinessCategories } from "../../../api/business";
 import SenderModal from "./SenderModal";
 
 export default function CreateCampaignModal({ show, onHide, campaign = null, onSaved }) {
@@ -19,8 +19,27 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     const [templates, setTemplates] = useState([]);
     const [senders, setSenders] = useState([]);
     const [businesses, setBusinesses] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loadingOptions, setLoadingOptions] = useState(false);
+
+    // View Mode tab in Step 4: "all" or "selected"
+    const [leadViewMode, setLeadViewMode] = useState("all");
+
+    // Scalable map storing selected leads: { [id]: businessObject }
+    const [selectedMap, setSelectedMap] = useState({});
+
+    // Pagination for Step 4
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(20);
+    const [lastPage, setLastPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Filter states for Step 4
     const [businessSearch, setBusinessSearch] = useState("");
+    const [psiFilter, setPsiFilter] = useState("");
+    const [hasScreenshot, setHasScreenshot] = useState("");
+    const [hasWebsite, setHasWebsite] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
 
     // Quick Add Sender Modal
     const [showSenderModal, setShowSenderModal] = useState(false);
@@ -32,12 +51,14 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         email_template_id: "",
         scheduled_at: "",
         senders: [],
-        businesses: [],
     });
 
     useEffect(() => {
         if (show) {
             setStep(1);
+            setLeadViewMode("all");
+            setPage(1);
+            setSelectedMap({});
             loadAllOptions();
             if (campaign) {
                 setFormData({
@@ -46,8 +67,18 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     email_template_id: campaign.email_template_id || "",
                     scheduled_at: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : "",
                     senders: campaign.senders ? campaign.senders.map((s) => s.email_sender_id) : [],
-                    businesses: campaign.leads ? campaign.leads.map((l) => l.business_id) : [],
                 });
+                if (campaign.leads) {
+                    const map = {};
+                    campaign.leads.forEach((l) => {
+                        if (l.business) {
+                            map[l.business_id] = l.business;
+                        } else {
+                            map[l.business_id] = { id: l.business_id, business_name: `Business #${l.business_id}`, email: "-" };
+                        }
+                    });
+                    setSelectedMap(map);
+                }
             } else {
                 setFormData({
                     name: "",
@@ -55,26 +86,29 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     email_template_id: "",
                     scheduled_at: "",
                     senders: [],
-                    businesses: [],
                 });
             }
         }
     }, [show, campaign]);
 
+    useEffect(() => {
+        if (show && step === 4) {
+            loadLeadsFiltered();
+        }
+    }, [show, step, page, perPage, businessSearch, psiFilter, hasScreenshot, hasWebsite, categoryFilter]);
+
     const loadAllOptions = async () => {
         try {
             setLoadingOptions(true);
-            const [tplRes, senderRes, bizRes] = await Promise.all([
+            const [tplRes, senderRes, catRes] = await Promise.all([
                 getEmailTemplates({ status: "published" }),
                 getEmailSenders(),
-                getBusinesses({ page: 1, per_page: 100 }),
+                getBusinessCategories(),
             ]);
             setTemplates(tplRes.data.data?.data || tplRes.data.data || []);
             setSenders(senderRes.data.data?.data || senderRes.data.data || []);
-            
-            // Filter businesses that have email
-            const bizList = (bizRes.data.data?.data || []).filter((b) => Boolean(b.email));
-            setBusinesses(bizList);
+            setCategories(catRes.data.data || []);
+            await loadLeadsFiltered();
         } catch (error) {
             console.error("Failed to load campaign options", error);
         } finally {
@@ -82,15 +116,24 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         }
     };
 
-    const handleSearchBusinesses = async (e) => {
-        const query = e.target.value;
-        setBusinessSearch(query);
+    const loadLeadsFiltered = async () => {
         try {
-            const bizRes = await getBusinesses({ search: query, page: 1, per_page: 100 });
-            const bizList = (bizRes.data.data?.data || []).filter((b) => Boolean(b.email));
+            const bizRes = await getBusinesses({
+                search: businessSearch,
+                psi_filter: psiFilter,
+                has_screenshot: hasScreenshot,
+                has_website: hasWebsite,
+                category: categoryFilter,
+                page,
+                per_page: perPage,
+            });
+            const paginatedData = bizRes.data.data;
+            const bizList = (paginatedData?.data || []).filter((b) => Boolean(b.email));
             setBusinesses(bizList);
+            setLastPage(paginatedData?.last_page || 1);
+            setTotalCount(paginatedData?.total || bizList.length);
         } catch (err) {
-            console.error(err);
+            console.error("Failed to load leads", err);
         }
     };
 
@@ -106,28 +149,75 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         });
     };
 
-    const toggleBusiness = (bizId) => {
-        setFormData((prev) => {
-            const exists = prev.businesses.includes(bizId);
-            return {
-                ...prev,
-                businesses: exists
-                    ? prev.businesses.filter((id) => id !== bizId)
-                    : [...prev.businesses, bizId],
-            };
+    const toggleBusiness = (biz) => {
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            if (next[biz.id]) {
+                delete next[biz.id];
+            } else {
+                next[biz.id] = biz;
+            }
+            return next;
         });
     };
 
-    const toggleSelectAllBusinesses = () => {
-        const allIds = businesses.map((b) => b.id);
-        const allSelected = allIds.length > 0 && allIds.every((id) => formData.businesses.includes(id));
-        setFormData((prev) => ({
-            ...prev,
-            businesses: allSelected
-                ? prev.businesses.filter((id) => !allIds.includes(id))
-                : [...new Set([...prev.businesses, ...allIds])],
-        }));
+    const toggleSelectAllBusinessesPage = () => {
+        const currentPageIds = businesses.map((b) => b.id);
+        const allSelected = currentPageIds.length > 0 && currentPageIds.every((id) => selectedMap[id]);
+
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            if (allSelected) {
+                currentPageIds.forEach((id) => delete next[id]);
+            } else {
+                businesses.forEach((biz) => {
+                    next[biz.id] = biz;
+                });
+            }
+            return next;
+        });
     };
+
+    const selectAllFilteredLeads = async () => {
+        try {
+            toast.loading("Selecting all matching leads across pages...", { id: "select_all" });
+            const bizRes = await getBusinesses({
+                search: businessSearch,
+                psi_filter: psiFilter,
+                has_screenshot: hasScreenshot,
+                has_website: hasWebsite,
+                category: categoryFilter,
+                page: 1,
+                per_page: 500,
+            });
+            const bizList = (bizRes.data.data?.data || []).filter((b) => Boolean(b.email));
+            setSelectedMap((prev) => {
+                const next = { ...prev };
+                bizList.forEach((biz) => {
+                    next[biz.id] = biz;
+                });
+                return next;
+            });
+            toast.success(`Selected ${bizList.length} target leads!`, { id: "select_all" });
+        } catch (err) {
+            toast.error("Failed to select all leads", { id: "select_all" });
+        }
+    };
+
+    const removeSelectedBusiness = (id) => {
+        setSelectedMap((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    };
+
+    const clearAllSelectedBusinesses = () => {
+        setSelectedMap({});
+    };
+
+    const selectedIds = Object.keys(selectedMap).map(Number);
+    const selectedList = Object.values(selectedMap);
 
     const handleSubmit = async (e) => {
         if (e) {
@@ -135,7 +225,6 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             e.stopPropagation();
         }
 
-        // Strictly prevent form submission on wizard steps 1, 2, 3, or 4
         if (step !== 5) {
             return;
         }
@@ -150,7 +239,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             setStep(3);
             return;
         }
-        if (formData.businesses.length === 0) {
+        if (selectedIds.length === 0) {
             toast.error("Please select at least one target business lead.");
             setStep(4);
             return;
@@ -164,7 +253,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 email_template_id: parseInt(formData.email_template_id, 10),
                 scheduled_at: formData.scheduled_at || null,
                 senders: formData.senders,
-                businesses: formData.businesses,
+                businesses: selectedIds,
             };
 
             if (isEdit) {
@@ -185,7 +274,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     };
 
     return (
-        <Modal show={show} onHide={onHide} size="lg" centered>
+        <Modal show={show} onHide={onHide} size="xl" centered>
             <Modal.Header closeButton className="border-0">
                 <Modal.Title className="fw-bold">
                     {isEdit ? `Edit Campaign: ${campaign?.name}` : "Create New Email Campaign"}
@@ -395,83 +484,329 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                             {/* Step 4: Target Leads */}
                             {step === 4 && (
                                 <div>
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
-                                        <div>
-                                            <h6 className="fw-bold m-0 text-dark">Target Business Leads ({formData.businesses.length} Selected) *</h6>
-                                            <small className="text-muted">Only leads with a valid email address are listed.</small>
-                                        </div>
-                                        <div className="d-flex gap-2">
-                                            <Form.Control
-                                                type="text"
-                                                size="sm"
-                                                placeholder="Search leads..."
-                                                value={businessSearch}
-                                                onChange={handleSearchBusinesses}
-                                                style={{ width: "200px" }}
-                                            />
+                                    {/* View Mode Selector Tabs */}
+                                    <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                        <div className="btn-group">
                                             <Button
-                                                variant="outline-secondary"
+                                                variant={leadViewMode === "all" ? "primary" : "outline-secondary"}
                                                 size="sm"
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    toggleSelectAllBusinesses();
-                                                }}
+                                                onClick={() => setLeadViewMode("all")}
+                                                className="d-flex align-items-center gap-2"
                                             >
-                                                {businesses.length > 0 && businesses.every((b) => formData.businesses.includes(b.id))
-                                                    ? "Deselect All"
-                                                     : "Select All"}
+                                                <FiList />
+                                                <span>Lead Directory ({totalCount})</span>
+                                            </Button>
+                                            <Button
+                                                variant={leadViewMode === "selected" ? "success" : "outline-success"}
+                                                size="sm"
+                                                onClick={() => setLeadViewMode("selected")}
+                                                className="d-flex align-items-center gap-2"
+                                            >
+                                                <FiCheckCircle />
+                                                <span>Selected Target Leads ({selectedIds.length})</span>
                                             </Button>
                                         </div>
+
+                                        {leadViewMode === "selected" && selectedIds.length > 0 && (
+                                            <Button variant="outline-danger" size="sm" onClick={clearAllSelectedBusinesses}>
+                                                Clear All Selected
+                                            </Button>
+                                        )}
                                     </div>
 
-                                    {businesses.length === 0 ? (
-                                        <div className="alert alert-warning">No leads with email address found.</div>
-                                    ) : (
-                                        <div className="table-responsive border rounded" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                                            <Table hover size="sm" className="align-middle mb-0">
-                                                <thead className="bg-light sticky-top">
-                                                    <tr>
-                                                        <th style={{ width: "40px" }}>
-                                                            <Form.Check
-                                                                type="checkbox"
-                                                                checked={businesses.length > 0 && businesses.every((b) => formData.businesses.includes(b.id))}
-                                                                onChange={toggleSelectAllBusinesses}
-                                                            />
-                                                        </th>
-                                                        <th>Business Name</th>
-                                                        <th>Email</th>
-                                                        <th>City / Country</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {businesses.map((biz) => {
-                                                        const isSelected = formData.businesses.includes(biz.id);
-                                                        return (
-                                                            <tr
-                                                                key={biz.id}
-                                                                onClick={() => toggleBusiness(biz.id)}
-                                                                style={{ cursor: "pointer" }}
-                                                                className={isSelected ? "table-active" : ""}
-                                                            >
-                                                                <td onClick={(e) => e.stopPropagation()}>
+                                    {/* Advanced Filter Toolbar (Shown in Directory View Mode) */}
+                                    {leadViewMode === "all" && (
+                                        <div className="bg-light p-3 rounded border mb-3">
+                                            <Row className="g-2">
+                                                <Col md={3}>
+                                                    <Form.Control
+                                                        type="text"
+                                                        size="sm"
+                                                        placeholder="Search name, email, website..."
+                                                        value={businessSearch}
+                                                        onChange={(e) => {
+                                                            setBusinessSearch(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    />
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={psiFilter}
+                                                        onChange={(e) => {
+                                                            setPsiFilter(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All PSI Scores</option>
+                                                        <option value="less_50">🔴 Poor Score (&lt; 50)</option>
+                                                        <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
+                                                        <option value="good_90">🟢 Good Score (≥ 90)</option>
+                                                        <option value="not_audited">⚪ Not Audited Yet</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={hasScreenshot}
+                                                        onChange={(e) => {
+                                                            setHasScreenshot(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Screenshots</option>
+                                                        <option value="yes">📷 Has Screenshot</option>
+                                                        <option value="no">🚫 Missing Screenshot</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={hasWebsite}
+                                                        onChange={(e) => {
+                                                            setHasWebsite(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Websites</option>
+                                                        <option value="yes">🌐 Has Website</option>
+                                                        <option value="no">🚫 No Website</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={3}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={categoryFilter}
+                                                        onChange={(e) => {
+                                                            setCategoryFilter(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Categories</option>
+                                                        {categories.map((cat, idx) => (
+                                                            <option key={idx} value={cat}>
+                                                                {cat}
+                                                            </option>
+                                                        ))}
+                                                    </Form.Select>
+                                                </Col>
+                                            </Row>
+                                        </div>
+                                    )}
+
+                                    {/* Directory Table View */}
+                                    {leadViewMode === "all" && (
+                                        <div>
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                                <small className="text-muted fw-semibold">
+                                                    Page {page} of {lastPage} — Showing {businesses.length} of {totalCount} matching leads
+                                                </small>
+                                                <div className="d-flex gap-2">
+                                                    <Button
+                                                        variant="outline-primary"
+                                                        size="sm"
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            toggleSelectAllBusinessesPage();
+                                                        }}
+                                                    >
+                                                        {businesses.length > 0 && businesses.every((b) => selectedMap[b.id])
+                                                            ? "Deselect Page"
+                                                            : "Select All on Page"}
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline-success"
+                                                        size="sm"
+                                                        type="button"
+                                                        onClick={selectAllFilteredLeads}
+                                                    >
+                                                        <FiCheckSquare className="me-1" />
+                                                        Select All {totalCount} Filtered Leads
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {businesses.length === 0 ? (
+                                                <div className="alert alert-warning text-center">No leads matching these filter criteria found.</div>
+                                            ) : (
+                                                <div className="table-responsive border rounded" style={{ maxHeight: "320px", overflowY: "auto" }}>
+                                                    <Table hover size="sm" className="align-middle mb-0">
+                                                        <thead className="bg-light sticky-top">
+                                                            <tr>
+                                                                <th style={{ width: "40px" }}>
                                                                     <Form.Check
                                                                         type="checkbox"
-                                                                        checked={isSelected}
-                                                                        onChange={() => toggleBusiness(biz.id)}
+                                                                        checked={businesses.length > 0 && businesses.every((b) => selectedMap[b.id])}
+                                                                        onChange={toggleSelectAllBusinessesPage}
                                                                     />
-                                                                </td>
-                                                                <td className="fw-medium text-dark">{biz.business_name}</td>
-                                                                <td className="text-primary">{biz.email}</td>
-                                                                <td className="text-muted small">
-                                                                    {biz.city || ""}{biz.country ? `, ${biz.country}` : ""}
-                                                                </td>
+                                                                </th>
+                                                                <th>Business Name</th>
+                                                                <th>Category</th>
+                                                                <th>PSI Score</th>
+                                                                <th>Screenshot</th>
+                                                                <th>Website</th>
+                                                                <th>Email</th>
                                                             </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </Table>
+                                                        </thead>
+                                                        <tbody>
+                                                            {businesses.map((biz) => {
+                                                                const isSelected = Boolean(selectedMap[biz.id]);
+                                                                const psiScore = Number(biz.audit?.mobile_pagespeed || 0);
+                                                                const hasShot = Boolean(biz.audit?.mobile_screenshot_path);
+
+                                                                return (
+                                                                    <tr
+                                                                        key={biz.id}
+                                                                        onClick={() => toggleBusiness(biz)}
+                                                                        style={{ cursor: "pointer" }}
+                                                                        className={isSelected ? "table-active" : ""}
+                                                                    >
+                                                                        <td onClick={(e) => e.stopPropagation()}>
+                                                                            <Form.Check
+                                                                                type="checkbox"
+                                                                                checked={isSelected}
+                                                                                onChange={() => toggleBusiness(biz)}
+                                                                            />
+                                                                        </td>
+                                                                        <td className="fw-semibold text-dark">{biz.business_name}</td>
+                                                                        <td>
+                                                                            <Badge bg="light" text="dark" className="border">
+                                                                                {biz.category || "General"}
+                                                                            </Badge>
+                                                                        </td>
+                                                                        <td>
+                                                                            <Badge
+                                                                                bg={
+                                                                                    psiScore >= 90
+                                                                                        ? "success"
+                                                                                        : psiScore >= 50
+                                                                                        ? "warning"
+                                                                                        : psiScore > 0
+                                                                                        ? "danger"
+                                                                                        : "secondary"
+                                                                                }
+                                                                                className="px-2 py-1"
+                                                                            >
+                                                                                {psiScore > 0 ? `${psiScore} / 100` : "Not Audited"}
+                                                                            </Badge>
+                                                                        </td>
+                                                                        <td>
+                                                                            {hasShot ? (
+                                                                                <Badge bg="info" className="d-inline-flex align-items-center gap-1">
+                                                                                    <FiCamera />
+                                                                                    <span>Available</span>
+                                                                                </Badge>
+                                                                            ) : (
+                                                                                <small className="text-muted">-</small>
+                                                                            )}
+                                                                        </td>
+                                                                        <td>
+                                                                            {biz.website && biz.website !== "-" ? (
+                                                                                <small className="text-primary text-truncate d-block" style={{ maxWidth: "140px" }}>
+                                                                                    <FiGlobe className="me-1" />
+                                                                                    {biz.website}
+                                                                                </small>
+                                                                            ) : (
+                                                                                <small className="text-muted">-</small>
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="text-primary small">{biz.email}</td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </Table>
+                                                </div>
+                                            )}
+
+                                            {/* Server-Side Pagination Controls */}
+                                            <div className="d-flex justify-content-between align-items-center mt-3">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <small className="text-muted">Rows per page:</small>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        style={{ width: "80px" }}
+                                                        value={perPage}
+                                                        onChange={(e) => {
+                                                            setPerPage(Number(e.target.value));
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value={15}>15</option>
+                                                        <option value={20}>20</option>
+                                                        <option value={50}>50</option>
+                                                        <option value={100}>100</option>
+                                                    </Form.Select>
+                                                </div>
+
+                                                <Pagination size="sm" className="mb-0">
+                                                    <Pagination.First disabled={page <= 1} onClick={() => setPage(1)} />
+                                                    <Pagination.Prev disabled={page <= 1} onClick={() => setPage((p) => p - 1)} />
+                                                    <Pagination.Item active>{page}</Pagination.Item>
+                                                    <Pagination.Next disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)} />
+                                                    <Pagination.Last disabled={page >= lastPage} onClick={() => setPage(lastPage)} />
+                                                </Pagination>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Selected Target Leads View */}
+                                    {leadViewMode === "selected" && (
+                                        <div>
+                                            {selectedList.length === 0 ? (
+                                                <div className="alert alert-info text-center py-4">
+                                                    No target leads selected yet. Switch to the <strong>Lead Directory</strong> tab to select leads across any page.
+                                                </div>
+                                            ) : (
+                                                <div className="table-responsive border rounded" style={{ maxHeight: "350px", overflowY: "auto" }}>
+                                                    <Table hover size="sm" className="align-middle mb-0">
+                                                        <thead className="bg-light sticky-top">
+                                                            <tr>
+                                                                <th>Business Name</th>
+                                                                <th>Category</th>
+                                                                <th>Website</th>
+                                                                <th>Email</th>
+                                                                <th className="text-end" style={{ width: "90px" }}>Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {selectedList.map((biz) => (
+                                                                <tr key={biz.id}>
+                                                                    <td className="fw-semibold text-dark">{biz.business_name}</td>
+                                                                    <td>
+                                                                        <Badge bg="light" text="dark" className="border">
+                                                                            {biz.category || "General"}
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td>
+                                                                        {biz.website && biz.website !== "-" ? (
+                                                                            <small className="text-primary text-truncate d-block" style={{ maxWidth: "150px" }}>
+                                                                                {biz.website}
+                                                                            </small>
+                                                                        ) : (
+                                                                            <small className="text-muted">-</small>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="text-primary small">{biz.email}</td>
+                                                                    <td className="text-end">
+                                                                        <Button
+                                                                            variant="outline-danger"
+                                                                            size="sm"
+                                                                            onClick={() => removeSelectedBusiness(biz.id)}
+                                                                            title="Remove lead from campaign target list"
+                                                                        >
+                                                                            <FiTrash2 />
+                                                                        </Button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </Table>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -498,7 +833,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                             <li className="mb-1"><strong>Campaign Name:</strong> {formData.name || "(Not set)"}</li>
                                             <li className="mb-1"><strong>Template:</strong> {templates.find((t) => String(t.id) === String(formData.email_template_id))?.name || "None selected"}</li>
                                             <li className="mb-1"><strong>Senders Count:</strong> {formData.senders.length} account(s)</li>
-                                            <li className="mb-1"><strong>Target Leads:</strong> {formData.businesses.length} lead(s)</li>
+                                            <li className="mb-1"><strong>Target Leads:</strong> {selectedIds.length} lead(s)</li>
                                         </ul>
                                     </Card>
                                 </div>

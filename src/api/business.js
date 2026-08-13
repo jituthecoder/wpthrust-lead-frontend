@@ -13,8 +13,10 @@ export const getBusinesses = ({
     status = "",
     category = "",
     assigned = "",
+    psi_filter = "",
+    has_screenshot = "",
+    has_website = "",
 } = {}) => {
-
     return axiosClient.get("/businesses", {
         params: {
             page,
@@ -23,9 +25,15 @@ export const getBusinesses = ({
             status,
             category,
             assigned,
+            psi_filter,
+            has_screenshot,
+            has_website,
         },
     });
+};
 
+export const getBusinessCategories = () => {
+    return axiosClient.get("/businesses/categories");
 };
 
 /*
@@ -45,9 +53,7 @@ export const getLead = (id) => {
 */
 
 export const assignLead = (data) => {
-
     return axiosClient.post("/businesses/assign", data);
-
 };
 
 /*
@@ -57,12 +63,8 @@ export const assignLead = (data) => {
 */
 
 export const callLead = (id, data) => {
-
     return axiosClient.post(`/businesses/${id}/call`, data);
-
 };
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -71,9 +73,7 @@ export const callLead = (id, data) => {
 */
 
 export const importBusinesses = (file) => {
-
     const formData = new FormData();
-
     formData.append("file", file);
 
     return axiosClient.post(
@@ -85,9 +85,7 @@ export const importBusinesses = (file) => {
             },
         }
     );
-
 };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -96,12 +94,10 @@ export const importBusinesses = (file) => {
 */
 
 export const assignLeads = (businessIds, assignedUserId) => {
-
     return axiosClient.post("/businesses/assign", {
         business_ids: businessIds,
         assigned_user_id: assignedUserId,
     });
-
 };
 
 export const fetchBusinessPsi = (id) => {
