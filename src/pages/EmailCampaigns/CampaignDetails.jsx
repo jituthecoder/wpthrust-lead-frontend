@@ -184,8 +184,12 @@ export default function CampaignDetails() {
         switch (status) {
             case "sent":
                 return <Badge bg="success"><FiCheckCircle className="me-1" /> Sent</Badge>;
+            case "opened":
+                return <Badge bg="info"><FiCheckCircle className="me-1" /> Opened</Badge>;
+            case "clicked":
+                return <Badge bg="primary"><FiCheckCircle className="me-1" /> Clicked</Badge>;
             case "processing":
-                return <Badge bg="info"><Spinner size="sm" animation="border" className="me-1" /> Processing</Badge>;
+                return <Badge bg="warning"><Spinner size="sm" animation="border" className="me-1" /> Processing</Badge>;
             case "failed":
                 return <Badge bg="danger"><FiXCircle className="me-1" /> Failed</Badge>;
             default:
