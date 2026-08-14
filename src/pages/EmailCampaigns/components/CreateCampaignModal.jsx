@@ -70,35 +70,38 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             setPage(1);
             setSelectedMap({});
             loadAllOptions();
-            if (campaign) {
+
+            const populateCampaignData = (cmp) => {
                 setFormData({
-                    name: campaign.name || "",
-                    description: campaign.description || "",
-                    email_template_id: campaign.email_template_id || "",
-                    scheduled_at: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : "",
-                    senders: campaign.senders ? campaign.senders.map((s) => s.email_sender_id) : [],
+                    name: cmp.name || "",
+                    description: cmp.description || "",
+                    email_template_id: cmp.email_template_id || "",
+                    scheduled_at: cmp.scheduled_at ? cmp.scheduled_at.slice(0, 16) : "",
+                    senders: cmp.senders ? cmp.senders.map((s) => s.email_sender_id) : [],
                 });
-                setAutoSyncEnabled(Boolean(campaign.auto_sync_enabled));
-                setAutoSyncCriteria(campaign.auto_sync_criteria || {
+                setAutoSyncEnabled(Boolean(cmp.auto_sync_enabled));
+                setAutoSyncCriteria(cmp.auto_sync_criteria || {
                     has_website: "",
                     has_screenshot: "",
                     psi_filter: "",
                     category: "",
                 });
-                if (campaign.sequence_steps && campaign.sequence_steps.length > 1) {
-                    const followups = campaign.sequence_steps.filter((s) => s.step_number > 1).map((s) => ({
+
+                const steps = cmp.sequence_steps || cmp.sequenceSteps || [];
+                if (steps && steps.length > 1) {
+                    const followups = steps.filter((s) => s.step_number > 1).map((s) => ({
                         delay_days: s.delay_days || 2,
                         condition: s.condition || "always",
-                        email_template_id: s.email_template_id || campaign.email_template_id,
+                        email_template_id: s.email_template_id || cmp.email_template_id,
                     }));
                     setSequenceSteps(followups);
                 } else {
                     setSequenceSteps([]);
                 }
 
-                if (campaign.leads) {
+                if (cmp.leads) {
                     const map = {};
-                    campaign.leads.forEach((l) => {
+                    cmp.leads.forEach((l) => {
                         if (l.business) {
                             map[l.business_id] = l.business;
                         } else {
@@ -107,6 +110,18 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     });
                     setSelectedMap(map);
                 }
+            };
+
+            if (campaign) {
+                populateCampaignData(campaign);
+                // Fetch full fresh campaign details from API
+                getEmailCampaign(campaign.id)
+                    .then((res) => {
+                        if (res.data?.data) {
+                            populateCampaignData(res.data.data);
+                        }
+                    })
+                    .catch(() => {});
             } else {
                 setFormData({
                     name: "",
