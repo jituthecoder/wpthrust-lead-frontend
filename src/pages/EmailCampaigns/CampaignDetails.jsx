@@ -188,6 +188,8 @@ export default function CampaignDetails() {
                 return <Badge bg="info"><FiCheckCircle className="me-1" /> Opened</Badge>;
             case "clicked":
                 return <Badge bg="primary"><FiCheckCircle className="me-1" /> Clicked</Badge>;
+            case "unsubscribed":
+                return <Badge bg="dark"><FiXCircle className="me-1" /> Unsubscribed</Badge>;
             case "processing":
                 return <Badge bg="warning"><Spinner size="sm" animation="border" className="me-1" /> Processing</Badge>;
             case "failed":

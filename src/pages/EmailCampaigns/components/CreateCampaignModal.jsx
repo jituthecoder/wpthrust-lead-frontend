@@ -53,6 +53,16 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         senders: [],
     });
 
+    // Multi-Step Follow-ups and Auto-Sync State
+    const [sequenceSteps, setSequenceSteps] = useState([]);
+    const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+    const [autoSyncCriteria, setAutoSyncCriteria] = useState({
+        has_website: "",
+        has_screenshot: "",
+        psi_filter: "",
+        category: "",
+    });
+
     useEffect(() => {
         if (show) {
             setStep(1);
@@ -68,6 +78,24 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     scheduled_at: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : "",
                     senders: campaign.senders ? campaign.senders.map((s) => s.email_sender_id) : [],
                 });
+                setAutoSyncEnabled(Boolean(campaign.auto_sync_enabled));
+                setAutoSyncCriteria(campaign.auto_sync_criteria || {
+                    has_website: "",
+                    has_screenshot: "",
+                    psi_filter: "",
+                    category: "",
+                });
+                if (campaign.sequence_steps && campaign.sequence_steps.length > 1) {
+                    const followups = campaign.sequence_steps.filter((s) => s.step_number > 1).map((s) => ({
+                        delay_days: s.delay_days || 2,
+                        condition: s.condition || "always",
+                        email_template_id: s.email_template_id || campaign.email_template_id,
+                    }));
+                    setSequenceSteps(followups);
+                } else {
+                    setSequenceSteps([]);
+                }
+
                 if (campaign.leads) {
                     const map = {};
                     campaign.leads.forEach((l) => {
@@ -86,6 +114,14 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     email_template_id: "",
                     scheduled_at: "",
                     senders: [],
+                });
+                setSequenceSteps([]);
+                setAutoSyncEnabled(false);
+                setAutoSyncCriteria({
+                    has_website: "",
+                    has_screenshot: "",
+                    psi_filter: "",
+                    category: "",
                 });
             }
         }
@@ -254,6 +290,9 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 scheduled_at: formData.scheduled_at || null,
                 senders: formData.senders,
                 businesses: selectedIds,
+                sequence_steps: sequenceSteps,
+                auto_sync_enabled: autoSyncEnabled,
+                auto_sync_criteria: autoSyncCriteria,
             };
 
             if (isEdit) {
@@ -815,7 +854,176 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                             {/* Step 5: Schedule & Review */}
                             {step === 5 && (
                                 <div>
-                                    <h6 className="fw-bold mb-3 text-dark">Schedule & Review Summary</h6>
+                                    <h6 className="fw-bold mb-3 text-dark">Campaign Sequence & Launch Settings</h6>
+
+                                    {/* 1. Sequence Builder */}
+                                    <Card className="border-0 bg-light p-3 mb-4 shadow-sm">
+                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                            <div>
+                                                <h6 className="fw-bold mb-0 text-dark">Conditional Multi-Step Sequence</h6>
+                                                <small className="text-muted">Set up automated follow-ups based on recipient actions.</small>
+                                            </div>
+                                            <Button
+                                                variant="outline-primary"
+                                                size="sm"
+                                                onClick={() => setSequenceSteps([
+                                                    ...sequenceSteps,
+                                                    { delay_days: 2, condition: "if_opened", email_template_id: formData.email_template_id }
+                                                ])}
+                                            >
+                                                + Add Follow-up Step
+                                            </Button>
+                                        </div>
+
+                                        {/* Step 1 Display */}
+                                        <div className="bg-white p-2 border rounded mb-2 d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span className="badge bg-primary me-2">Step 1</span>
+                                                <strong className="small">Initial Email</strong>
+                                                <span className="text-muted small ms-2">
+                                                    (Template: {templates.find((t) => String(t.id) === String(formData.email_template_id))?.name || "Selected Template"})
+                                                </span>
+                                            </div>
+                                            <span className="badge bg-light text-dark border">Dispatched Immediately</span>
+                                        </div>
+
+                                        {/* Additional Sequence Steps */}
+                                        {sequenceSteps.map((seqStep, idx) => (
+                                            <Card key={idx} className="border p-3 mb-2 bg-white">
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <span className="badge bg-info text-dark fw-bold">Step {idx + 2} Follow-up</span>
+                                                    <Button
+                                                        variant="link"
+                                                        className="text-danger p-0 small"
+                                                        onClick={() => setSequenceSteps(sequenceSteps.filter((_, i) => i !== idx))}
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                </div>
+                                                <Row className="g-2">
+                                                    <Col md={3}>
+                                                        <Form.Label className="small fw-semibold mb-1">Send Delay</Form.Label>
+                                                        <Form.Select
+                                                            size="sm"
+                                                            value={seqStep.delay_days}
+                                                            onChange={(e) => {
+                                                                const updated = [...sequenceSteps];
+                                                                updated[idx].delay_days = parseInt(e.target.value, 10);
+                                                                setSequenceSteps(updated);
+                                                            }}
+                                                        >
+                                                            <option value={1}>1 Day After</option>
+                                                            <option value={2}>2 Days After</option>
+                                                            <option value={3}>3 Days After</option>
+                                                            <option value={5}>5 Days After</option>
+                                                            <option value={7}>7 Days After</option>
+                                                        </Form.Select>
+                                                    </Col>
+                                                    <Col md={4}>
+                                                        <Form.Label className="small fw-semibold mb-1">Condition Rule</Form.Label>
+                                                        <Form.Select
+                                                            size="sm"
+                                                            value={seqStep.condition}
+                                                            onChange={(e) => {
+                                                                const updated = [...sequenceSteps];
+                                                                updated[idx].condition = e.target.value;
+                                                                setSequenceSteps(updated);
+                                                            }}
+                                                        >
+                                                            <option value="always">Always Send</option>
+                                                            <option value="if_opened">If Email Opened</option>
+                                                            <option value="if_not_opened">If Email NOT Opened</option>
+                                                            <option value="if_clicked">If Link Clicked</option>
+                                                            <option value="if_not_clicked">If Link NOT Clicked</option>
+                                                        </Form.Select>
+                                                    </Col>
+                                                    <Col md={5}>
+                                                        <Form.Label className="small fw-semibold mb-1">Follow-up Template</Form.Label>
+                                                        <Form.Select
+                                                            size="sm"
+                                                            value={seqStep.email_template_id}
+                                                            onChange={(e) => {
+                                                                const updated = [...sequenceSteps];
+                                                                updated[idx].email_template_id = e.target.value;
+                                                                setSequenceSteps(updated);
+                                                            }}
+                                                        >
+                                                            {templates.map((t) => (
+                                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                                            ))}
+                                                        </Form.Select>
+                                                    </Col>
+                                                </Row>
+                                            </Card>
+                                        ))}
+                                    </Card>
+
+                                    {/* 2. Auto-Sync New Leads */}
+                                    <Card className="border-0 bg-light p-3 mb-4 shadow-sm">
+                                        <div className="d-flex align-items-center justify-content-between mb-2">
+                                            <div>
+                                                <h6 className="fw-bold mb-0 text-dark">Dynamic Lead Auto-Sync</h6>
+                                                <small className="text-muted">Automatically add newly imported leads to this campaign if they match criteria.</small>
+                                            </div>
+                                            <Form.Check
+                                                type="switch"
+                                                id="auto-sync-switch"
+                                                checked={autoSyncEnabled}
+                                                onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+                                            />
+                                        </div>
+
+                                        {autoSyncEnabled && (
+                                            <Row className="g-2 mt-2 pt-2 border-top">
+                                                <Col md={3}>
+                                                    <Form.Label className="small fw-semibold mb-1">Has Website</Form.Label>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={autoSyncCriteria.has_website}
+                                                        onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, has_website: e.target.value })}
+                                                    >
+                                                        <option value="">Any (With or Without)</option>
+                                                        <option value="yes">Must Have Website</option>
+                                                        <option value="no">No Website Only</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={3}>
+                                                    <Form.Label className="small fw-semibold mb-1">Has Screenshot</Form.Label>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={autoSyncCriteria.has_screenshot}
+                                                        onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, has_screenshot: e.target.value })}
+                                                    >
+                                                        <option value="">Any</option>
+                                                        <option value="yes">Must Have Screenshot</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={3}>
+                                                    <Form.Label className="small fw-semibold mb-1">PageSpeed Score</Form.Label>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={autoSyncCriteria.psi_filter}
+                                                        onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, psi_filter: e.target.value })}
+                                                    >
+                                                        <option value="">All Scores</option>
+                                                        <option value="less_50">Poor (&lt; 50)</option>
+                                                        <option value="less_90">Needs Improvement (&lt; 90)</option>
+                                                        <option value="good_90">Good (&ge; 90)</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={3}>
+                                                    <Form.Label className="small fw-semibold mb-1">Category Filter</Form.Label>
+                                                    <Form.Control
+                                                        size="sm"
+                                                        type="text"
+                                                        placeholder="e.g. Plumber"
+                                                        value={autoSyncCriteria.category}
+                                                        onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, category: e.target.value })}
+                                                    />
+                                                </Col>
+                                            </Row>
+                                        )}
+                                    </Card>
 
                                     <Form.Group className="mb-4">
                                         <Form.Label className="fw-semibold small">Scheduled Start Time (Optional)</Form.Label>
@@ -826,16 +1034,6 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                         />
                                         <Form.Text className="text-muted small">Leave blank to save as Draft and start manually.</Form.Text>
                                     </Form.Group>
-
-                                    <Card className="bg-light border-0 p-3 mb-3">
-                                        <h6 className="fw-bold text-secondary mb-2">Campaign Overview</h6>
-                                        <ul className="list-unstyled mb-0 small">
-                                            <li className="mb-1"><strong>Campaign Name:</strong> {formData.name || "(Not set)"}</li>
-                                            <li className="mb-1"><strong>Template:</strong> {templates.find((t) => String(t.id) === String(formData.email_template_id))?.name || "None selected"}</li>
-                                            <li className="mb-1"><strong>Senders Count:</strong> {formData.senders.length} account(s)</li>
-                                            <li className="mb-1"><strong>Target Leads:</strong> {selectedIds.length} lead(s)</li>
-                                        </ul>
-                                    </Card>
                                 </div>
                             )}
                         </div>
