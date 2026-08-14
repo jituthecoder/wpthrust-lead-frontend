@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import { FiPlus, FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
-import { createEmailCampaign, updateEmailCampaign } from "../../../api/emailCampaigns";
+import { createEmailCampaign, updateEmailCampaign, getEmailCampaign } from "../../../api/emailCampaigns";
 import { getEmailTemplates } from "../../../api/emailTemplates";
 import { getEmailSenders } from "../../../api/emailSenders";
 import { getBusinesses, getBusinessCategories } from "../../../api/business";
