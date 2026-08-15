@@ -612,9 +612,12 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                             setPage(1);
                                                         }}
                                                     >
-                                                        <option value="">All PSI Scores</option>
+                                                        <option value="">All PageSpeed Scores</option>
+                                                        <option value="less_30">🔴 Very Poor (&lt; 30)</option>
                                                         <option value="less_50">🔴 Poor Score (&lt; 50)</option>
+                                                        <option value="less_70">🟠 Below Average (&lt; 70)</option>
                                                         <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
+                                                        <option value="between_50_89">🟡 Moderate (50 - 89)</option>
                                                         <option value="good_90">🟢 Good Score (≥ 90)</option>
                                                         <option value="not_audited">⚪ Not Audited Yet</option>
                                                     </Form.Select>
@@ -1046,10 +1049,14 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                         value={autoSyncCriteria.psi_filter}
                                                         onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, psi_filter: e.target.value })}
                                                     >
-                                                        <option value="">All Scores</option>
-                                                        <option value="less_50">Poor (&lt; 50)</option>
-                                                        <option value="less_90">Needs Improvement (&lt; 90)</option>
-                                                        <option value="good_90">Good (&ge; 90)</option>
+                                                        <option value="">All PageSpeed Scores</option>
+                                                        <option value="less_30">🔴 Very Poor (&lt; 30)</option>
+                                                        <option value="less_50">🔴 Poor Score (&lt; 50)</option>
+                                                        <option value="less_70">🟠 Below Average (&lt; 70)</option>
+                                                        <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
+                                                        <option value="between_50_89">🟡 Moderate (50 - 89)</option>
+                                                        <option value="good_90">🟢 Good Score (≥ 90)</option>
+                                                        <option value="not_audited">⚪ Not Audited Yet</option>
                                                     </Form.Select>
                                                 </Col>
                                                 <Col md={2}>

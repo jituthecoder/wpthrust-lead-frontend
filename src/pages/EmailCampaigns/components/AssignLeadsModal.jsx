@@ -288,11 +288,14 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                                             setPage(1);
                                         }}
                                     >
-                                        <option value="">All PSI Scores</option>
-                                        <option value="less_50">🔴 Poor (&lt; 50)</option>
-                                        <option value="less_90">🟠 Medium (&lt; 90)</option>
-                                        <option value="good_90">🟢 Good (≥ 90)</option>
-                                        <option value="not_audited">⚪ Not Audited</option>
+                                        <option value="">All PageSpeed Scores</option>
+                                        <option value="less_30">🔴 Very Poor (&lt; 30)</option>
+                                        <option value="less_50">🔴 Poor Score (&lt; 50)</option>
+                                        <option value="less_70">🟠 Below Average (&lt; 70)</option>
+                                        <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
+                                        <option value="between_50_89">🟡 Moderate (50 - 89)</option>
+                                        <option value="good_90">🟢 Good Score (≥ 90)</option>
+                                        <option value="not_audited">⚪ Not Audited Yet</option>
                                     </Form.Select>
                                 </Col>
                                 <Col md={1}>
