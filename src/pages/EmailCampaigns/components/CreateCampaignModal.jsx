@@ -949,8 +949,15 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                             <option value={1}>1 Day After</option>
                                                             <option value={2}>2 Days After</option>
                                                             <option value={3}>3 Days After</option>
+                                                            <option value={4}>4 Days After</option>
                                                             <option value={5}>5 Days After</option>
+                                                            <option value={6}>6 Days After</option>
                                                             <option value={7}>7 Days After</option>
+                                                            <option value={9}>9 Days After</option>
+                                                            <option value={10}>10 Days After</option>
+                                                            <option value={14}>14 Days After (2 Weeks)</option>
+                                                            <option value={21}>21 Days After (3 Weeks)</option>
+                                                            <option value={30}>30 Days After (1 Month)</option>
                                                         </Form.Select>
                                                     </Col>
                                                     <Col md={4}>
