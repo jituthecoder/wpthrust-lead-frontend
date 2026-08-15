@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar } from "react-bootstrap";
+import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar, Modal } from "react-bootstrap";
 import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../layouts/DashboardLayout";
