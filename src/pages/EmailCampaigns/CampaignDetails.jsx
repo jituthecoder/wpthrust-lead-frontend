@@ -14,6 +14,7 @@ import {
     cancelEmailCampaign,
     retryCampaignLead,
     retryAllFailedCampaignLeads,
+    syncCampaignLeads,
 } from "../../api/emailCampaigns";
 import AssignLeadsModal from "./components/AssignLeadsModal";
 import CreateCampaignModal from "./components/CreateCampaignModal";
@@ -39,6 +40,7 @@ export default function CampaignDetails() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [retryingLeadId, setRetryingLeadId] = useState(null);
     const [retryingAll, setRetryingAll] = useState(false);
+    const [syncingLeads, setSyncingLeads] = useState(false);
 
     const refreshStatsSilent = async () => {
         if (!id) return;
@@ -183,6 +185,21 @@ export default function CampaignDetails() {
         }
     };
 
+    const handleSyncLeads = async () => {
+        try {
+            setSyncingLeads(true);
+            const res = await syncCampaignLeads(id);
+            const added = res.data?.data?.added_count || 0;
+            toast.success(`Synced ${added} matching leads from database to campaign!`);
+            loadCampaignData();
+            loadLeads(1);
+        } catch (error) {
+            toast.error("Failed to sync matching leads");
+        } finally {
+            setSyncingLeads(false);
+        }
+    };
+
     const getLeadStatusBadge = (status) => {
         switch (status) {
             case "sent":
@@ -305,6 +322,19 @@ export default function CampaignDetails() {
                         <FiPlus />
                         <span>Add Leads</span>
                     </Button>
+
+                    {campaign.auto_sync_enabled && (
+                        <Button
+                            variant="info"
+                            className="text-white d-flex align-items-center gap-2"
+                            onClick={handleSyncLeads}
+                            disabled={syncingLeads}
+                            title="Scan database and pull all matching imported leads into campaign"
+                        >
+                            {syncingLeads ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
+                            <span>Sync Auto-Match Leads</span>
+                        </Button>
+                    )}
                 </div>
             </div>
 

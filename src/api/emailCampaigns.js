@@ -80,3 +80,7 @@ export const retryCampaignLead = (campaignId, campaignLeadId) => {
 export const retryAllFailedCampaignLeads = (campaignId) => {
     return axiosClient.post(`/email-campaigns/${campaignId}/leads/retry-all`);
 };
+
+export const syncCampaignLeads = (campaignId) => {
+    return axiosClient.post(`/email-campaigns/${campaignId}/sync-leads`);
+};
