@@ -251,21 +251,16 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                                     />
                                 </Col>
                                 <Col md={2}>
-                                    <Form.Select
+                                    <Form.Control
+                                        type="text"
                                         size="sm"
+                                        placeholder="Country (e.g. USA, US...)"
                                         value={country}
                                         onChange={(e) => {
                                             setCountry(e.target.value);
                                             setPage(1);
                                         }}
-                                    >
-                                        <option value="">All Countries</option>
-                                        {countries.map((cnt, idx) => (
-                                            <option key={idx} value={cnt}>
-                                                🌍 {cnt}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
+                                    />
                                 </Col>
                                 <Col md={2}>
                                     <Form.Select

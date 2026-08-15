@@ -590,19 +590,16 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                     />
                                                 </Col>
                                                 <Col md={2}>
-                                                    <Form.Select
+                                                    <Form.Control
+                                                        type="text"
                                                         size="sm"
+                                                        placeholder="Country (e.g. USA, US...)"
                                                         value={countryFilter}
                                                         onChange={(e) => {
                                                             setCountryFilter(e.target.value);
                                                             setPage(1);
                                                         }}
-                                                    >
-                                                        <option value="">All Countries</option>
-                                                        {countries.map((cnt, idx) => (
-                                                            <option key={idx} value={cnt}>{cnt}</option>
-                                                        ))}
-                                                    </Form.Select>
+                                                    />
                                                 </Col>
                                                 <Col md={2}>
                                                     <Form.Select
