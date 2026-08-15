@@ -3,13 +3,14 @@ import { Modal, Button, Form, Spinner, Table, Row, Col, Badge, Pagination } from
 import { FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { assignCampaignLeads } from "../../../api/emailCampaigns";
-import { getBusinesses, getBusinessCategories } from "../../../api/business";
+import { getBusinesses, getBusinessCategories, getBusinessCountries } from "../../../api/business";
 
 export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned }) {
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(false);
     const [businesses, setBusinesses] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [countries, setCountries] = useState([]);
 
     // Map storing full objects of selected leads: { [id]: businessObject }
     const [selectedMap, setSelectedMap] = useState({});
@@ -29,10 +30,12 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
     const [hasScreenshot, setHasScreenshot] = useState("");
     const [hasWebsite, setHasWebsite] = useState("");
     const [category, setCategory] = useState("");
+    const [country, setCountry] = useState("");
 
     useEffect(() => {
         if (show) {
             loadCategories();
+            loadCountries();
             setSelectedMap({});
             setViewMode("all");
             setPage(1);
@@ -43,7 +46,7 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
         if (show && campaignId) {
             loadLeads();
         }
-    }, [show, campaignId, page, perPage, search, psiFilter, hasScreenshot, hasWebsite, category]);
+    }, [show, campaignId, page, perPage, search, psiFilter, hasScreenshot, hasWebsite, category, country]);
 
     const loadCategories = async () => {
         try {
@@ -51,6 +54,15 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
             setCategories(res.data.data || []);
         } catch (err) {
             console.error("Failed to load categories", err);
+        }
+    };
+
+    const loadCountries = async () => {
+        try {
+            const res = await getBusinessCountries();
+            setCountries(res.data.data || []);
+        } catch (err) {
+            console.error("Failed to load countries", err);
         }
     };
 
@@ -63,6 +75,7 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                 has_screenshot: hasScreenshot,
                 has_website: hasWebsite,
                 category,
+                country,
                 page,
                 per_page: perPage,
             });
@@ -116,6 +129,7 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                 has_screenshot: hasScreenshot,
                 has_website: hasWebsite,
                 category,
+                country,
                 page: 1,
                 per_page: 500, // fetch larger chunk of filtered leads
             });
@@ -175,6 +189,7 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
         setHasScreenshot("");
         setHasWebsite("");
         setCategory("");
+        setCountry("");
         setPage(1);
     };
 
@@ -223,10 +238,10 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                     {viewMode === "all" && (
                         <div className="bg-light p-3 rounded border mb-3">
                             <Row className="g-2">
-                                <Col md={3}>
+                                <Col md={2}>
                                     <Form.Control
                                         type="text"
-                                        placeholder="Search name, email, website..."
+                                        placeholder="Search name, email..."
                                         value={search}
                                         onChange={(e) => {
                                             setSearch(e.target.value);
@@ -238,45 +253,18 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                                 <Col md={2}>
                                     <Form.Select
                                         size="sm"
-                                        value={psiFilter}
+                                        value={country}
                                         onChange={(e) => {
-                                            setPsiFilter(e.target.value);
+                                            setCountry(e.target.value);
                                             setPage(1);
                                         }}
                                     >
-                                        <option value="">All PSI Scores</option>
-                                        <option value="less_50">🔴 Poor Score (&lt; 50)</option>
-                                        <option value="less_90">🟠 Needs Improvement (&lt; 90)</option>
-                                        <option value="good_90">🟢 Good Score (≥ 90)</option>
-                                        <option value="not_audited">⚪ Not Audited Yet</option>
-                                    </Form.Select>
-                                </Col>
-                                <Col md={2}>
-                                    <Form.Select
-                                        size="sm"
-                                        value={hasScreenshot}
-                                        onChange={(e) => {
-                                            setHasScreenshot(e.target.value);
-                                            setPage(1);
-                                        }}
-                                    >
-                                        <option value="">All Screenshots</option>
-                                        <option value="yes">📷 Has PSI Screenshot</option>
-                                        <option value="no">🚫 Missing Screenshot</option>
-                                    </Form.Select>
-                                </Col>
-                                <Col md={2}>
-                                    <Form.Select
-                                        size="sm"
-                                        value={hasWebsite}
-                                        onChange={(e) => {
-                                            setHasWebsite(e.target.value);
-                                            setPage(1);
-                                        }}
-                                    >
-                                        <option value="">All Websites</option>
-                                        <option value="yes">🌐 Has Website</option>
-                                        <option value="no">🚫 No Website</option>
+                                        <option value="">All Countries</option>
+                                        {countries.map((cnt, idx) => (
+                                            <option key={idx} value={cnt}>
+                                                🌍 {cnt}
+                                            </option>
+                                        ))}
                                     </Form.Select>
                                 </Col>
                                 <Col md={2}>
@@ -294,6 +282,50 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                                                 {cat}
                                             </option>
                                         ))}
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={psiFilter}
+                                        onChange={(e) => {
+                                            setPsiFilter(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All PSI Scores</option>
+                                        <option value="less_50">🔴 Poor (&lt; 50)</option>
+                                        <option value="less_90">🟠 Medium (&lt; 90)</option>
+                                        <option value="good_90">🟢 Good (≥ 90)</option>
+                                        <option value="not_audited">⚪ Not Audited</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col md={1}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={hasScreenshot}
+                                        onChange={(e) => {
+                                            setHasScreenshot(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Shot</option>
+                                        <option value="yes">📷 Yes</option>
+                                        <option value="no">🚫 No</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col md={2}>
+                                    <Form.Select
+                                        size="sm"
+                                        value={hasWebsite}
+                                        onChange={(e) => {
+                                            setHasWebsite(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Websites</option>
+                                        <option value="yes">🌐 Has Website</option>
+                                        <option value="no">🚫 No Website</option>
                                     </Form.Select>
                                 </Col>
                                 <Col md={1} className="d-flex align-items-center justify-content-end">

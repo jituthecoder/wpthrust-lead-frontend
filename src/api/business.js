@@ -12,6 +12,7 @@ export const getBusinesses = ({
     search = "",
     status = "",
     category = "",
+    country = "",
     assigned = "",
     psi_filter = "",
     has_screenshot = "",
@@ -24,6 +25,7 @@ export const getBusinesses = ({
             search,
             status,
             category,
+            country,
             assigned,
             psi_filter,
             has_screenshot,
@@ -34,6 +36,10 @@ export const getBusinesses = ({
 
 export const getBusinessCategories = () => {
     return axiosClient.get("/businesses/categories");
+};
+
+export const getBusinessCountries = () => {
+    return axiosClient.get("/businesses/countries");
 };
 
 /*

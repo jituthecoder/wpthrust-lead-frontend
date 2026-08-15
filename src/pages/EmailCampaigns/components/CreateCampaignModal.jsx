@@ -7,7 +7,7 @@ import { FiPlus, FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCh
 import { createEmailCampaign, updateEmailCampaign, getEmailCampaign } from "../../../api/emailCampaigns";
 import { getEmailTemplates } from "../../../api/emailTemplates";
 import { getEmailSenders } from "../../../api/emailSenders";
-import { getBusinesses, getBusinessCategories } from "../../../api/business";
+import { getBusinesses, getBusinessCategories, getBusinessCountries } from "../../../api/business";
 import SenderModal from "./SenderModal";
 
 export default function CreateCampaignModal({ show, onHide, campaign = null, onSaved }) {
@@ -20,6 +20,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     const [senders, setSenders] = useState([]);
     const [businesses, setBusinesses] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [countries, setCountries] = useState([]);
     const [loadingOptions, setLoadingOptions] = useState(false);
 
     // View Mode tab in Step 4: "all" or "selected"
@@ -40,6 +41,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     const [hasScreenshot, setHasScreenshot] = useState("");
     const [hasWebsite, setHasWebsite] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
+    const [countryFilter, setCountryFilter] = useState("");
 
     // Quick Add Sender Modal
     const [showSenderModal, setShowSenderModal] = useState(false);
@@ -146,19 +148,21 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         if (show && step === 4) {
             loadLeadsFiltered();
         }
-    }, [show, step, page, perPage, businessSearch, psiFilter, hasScreenshot, hasWebsite, categoryFilter]);
+    }, [show, step, page, perPage, businessSearch, psiFilter, hasScreenshot, hasWebsite, categoryFilter, countryFilter]);
 
     const loadAllOptions = async () => {
         try {
             setLoadingOptions(true);
-            const [tplRes, senderRes, catRes] = await Promise.all([
+            const [tplRes, senderRes, catRes, countryRes] = await Promise.all([
                 getEmailTemplates({ status: "published" }),
                 getEmailSenders(),
                 getBusinessCategories(),
+                getBusinessCountries(),
             ]);
             setTemplates(tplRes.data.data?.data || tplRes.data.data || []);
             setSenders(senderRes.data.data?.data || senderRes.data.data || []);
             setCategories(catRes.data.data || []);
+            setCountries(countryRes.data.data || []);
             await loadLeadsFiltered();
         } catch (error) {
             console.error("Failed to load campaign options", error);
@@ -175,6 +179,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 has_screenshot: hasScreenshot,
                 has_website: hasWebsite,
                 category: categoryFilter,
+                country: countryFilter,
                 page,
                 per_page: perPage,
             });
@@ -572,7 +577,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                     {leadViewMode === "all" && (
                                         <div className="bg-light p-3 rounded border mb-3">
                                             <Row className="g-2">
-                                                <Col md={3}>
+                                                <Col md={2}>
                                                     <Form.Control
                                                         type="text"
                                                         size="sm"
@@ -583,6 +588,21 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                             setPage(1);
                                                         }}
                                                     />
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={countryFilter}
+                                                        onChange={(e) => {
+                                                            setCountryFilter(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Countries</option>
+                                                        {countries.map((cnt, idx) => (
+                                                            <option key={idx} value={cnt}>{cnt}</option>
+                                                        ))}
+                                                    </Form.Select>
                                                 </Col>
                                                 <Col md={2}>
                                                     <Form.Select
@@ -628,7 +648,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                         <option value="no">🚫 No Website</option>
                                                     </Form.Select>
                                                 </Col>
-                                                <Col md={3}>
+                                                <Col md={2}>
                                                     <Form.Select
                                                         size="sm"
                                                         value={categoryFilter}
