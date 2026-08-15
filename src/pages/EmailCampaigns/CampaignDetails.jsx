@@ -310,7 +310,7 @@ export default function CampaignDetails() {
 
             {/* Performance Stats Cards */}
             <Row className="g-3 mb-4">
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Total Leads</small>
@@ -320,7 +320,7 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Sent Emails</small>
@@ -330,7 +330,7 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Open Rate</small>
@@ -340,7 +340,7 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Click Rate</small>
@@ -350,7 +350,17 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
+                    <Card className="border-0 shadow-sm h-100 bg-white">
+                        <Card.Body>
+                            <small className="text-muted fw-semibold text-uppercase">Unsubscribed</small>
+                            <h2 className="fw-bold text-warning mt-1 mb-0">{stats?.unsubscribed || 0}</h2>
+                            <small className="text-muted">{stats?.unsubscribe_rate || 0}% unsubscribed</small>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Pending Queue</small>
@@ -360,7 +370,7 @@ export default function CampaignDetails() {
                     </Card>
                 </Col>
 
-                <Col sm={6} lg={2}>
+                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
                     <Card className="border-0 shadow-sm h-100 bg-white">
                         <Card.Body>
                             <small className="text-muted fw-semibold text-uppercase">Failed Deliveries</small>
@@ -408,12 +418,13 @@ export default function CampaignDetails() {
                             <Form.Select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{ width: "150px" }}
+                                style={{ width: "160px" }}
                             >
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
                                 <option value="sent">Sent</option>
+                                <option value="unsubscribed">Unsubscribed</option>
                                 <option value="failed">Failed</option>
                             </Form.Select>
 
@@ -450,6 +461,7 @@ export default function CampaignDetails() {
                                     <tr>
                                         <th>Business Lead</th>
                                         <th>Target Email</th>
+                                        <th>Delivered From</th>
                                         <th>Status</th>
                                         <th>Sent / Processed At</th>
                                         <th>Error Details</th>
@@ -459,12 +471,14 @@ export default function CampaignDetails() {
                                 <tbody>
                                     {leads.map((lead) => {
                                         const errorMsg = lead.failure_reason || lead.error_message;
+                                        const senderEmail = lead.sender?.email || lead.sender?.from_email || lead.sender?.name || "-";
                                         return (
                                             <tr key={lead.id}>
                                                 <td className="fw-medium text-dark">
                                                     {lead.business?.business_name || "N/A"}
                                                 </td>
                                                 <td className="text-primary">{lead.business?.email || "N/A"}</td>
+                                                <td className="small text-muted">{senderEmail}</td>
                                                 <td>{getLeadStatusBadge(lead.status)}</td>
                                                 <td className="small text-muted">
                                                     {lead.sent_at ? new Date(lead.sent_at).toLocaleString() : "-"}
