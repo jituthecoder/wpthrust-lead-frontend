@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar } from "react-bootstrap";
-import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch } from "react-icons/fi";
+import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -23,6 +23,7 @@ export default function CampaignDetails() {
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
+    const [selectedSentLead, setSelectedSentLead] = useState(null);
     const [campaign, setCampaign] = useState(null);
     const [stats, setStats] = useState(null);
 
@@ -471,20 +472,35 @@ export default function CampaignDetails() {
                                                     )}
                                                 </td>
                                             <td className="text-end">
-                                                {lead.status === "failed" && (
-                                                    <Button
-                                                        variant="outline-warning"
-                                                        size="sm"
-                                                        onClick={() => handleRetryLead(lead.id)}
-                                                        disabled={retryingLeadId === lead.id}
-                                                    >
-                                                        {retryingLeadId === lead.id ? (
-                                                            <Spinner size="sm" animation="border" />
-                                                        ) : (
-                                                            "Retry"
-                                                        )}
-                                                    </Button>
-                                                )}
+                                                <div className="d-flex justify-content-end gap-1">
+                                                    {(lead.sent_subject || lead.sent_body_html || lead.sent_at) && (
+                                                        <Button
+                                                            variant="outline-info"
+                                                            size="sm"
+                                                            onClick={() => setSelectedSentLead(lead)}
+                                                            className="d-inline-flex align-items-center gap-1"
+                                                            title="View Sent Email Content"
+                                                        >
+                                                            <FiEye size={14} />
+                                                            <span>View Email</span>
+                                                        </Button>
+                                                    )}
+
+                                                    {lead.status === "failed" && (
+                                                        <Button
+                                                            variant="outline-warning"
+                                                            size="sm"
+                                                            onClick={() => handleRetryLead(lead.id)}
+                                                            disabled={retryingLeadId === lead.id}
+                                                        >
+                                                            {retryingLeadId === lead.id ? (
+                                                                <Spinner size="sm" animation="border" />
+                                                            ) : (
+                                                                "Retry"
+                                                            )}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -511,6 +527,58 @@ export default function CampaignDetails() {
                     loadLeads(1);
                 }}
             />
+
+            {/* View Sent Email Modal */}
+            <Modal show={Boolean(selectedSentLead)} onHide={() => setSelectedSentLead(null)} size="lg" centered>
+                <Modal.Header closeButton className="bg-light">
+                    <Modal.Title className="h5 fw-bold text-dark d-flex align-items-center gap-2">
+                        <FiEye className="text-primary" />
+                        <span>Delivered Email Content</span>
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-4">
+                    {selectedSentLead && (
+                        <div>
+                            <div className="mb-3 p-3 bg-light rounded-3 border">
+                                <div className="row g-2 small">
+                                    <div className="col-md-6">
+                                        <strong>To Business:</strong> {selectedSentLead.business?.business_name || "N/A"}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <strong>Recipient Email:</strong> <span className="text-primary">{selectedSentLead.business?.email || "N/A"}</span>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <strong>Status:</strong> {getLeadStatusBadge(selectedSentLead.status)}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <strong>Sent At:</strong> {selectedSentLead.sent_at ? new Date(selectedSentLead.sent_at).toLocaleString() : "N/A"}
+                                    </div>
+                                    <div className="col-12 mt-2 pt-2 border-top">
+                                        <strong>Email Title / Subject:</strong>
+                                        <div className="fw-semibold text-primary mt-1 fs-6">
+                                            {selectedSentLead.sent_subject || "Initial Campaign Outreach"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <label className="fw-bold mb-2 small text-muted text-uppercase">Rendered Email Body (HTML)</label>
+                            <div
+                                className="p-3 border rounded-3 bg-white shadow-sm"
+                                style={{ maxHeight: "450px", overflowY: "auto" }}
+                                dangerouslySetInnerHTML={{
+                                    __html: selectedSentLead.sent_body_html || `<div class="p-4 text-muted text-center">No HTML body preview cached for this dispatch.</div>`
+                                }}
+                            />
+                        </div>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setSelectedSentLead(null)}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </DashboardLayout>
     );
 }
