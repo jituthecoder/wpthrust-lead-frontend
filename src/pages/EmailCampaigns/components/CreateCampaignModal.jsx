@@ -63,6 +63,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         has_screenshot: "",
         psi_filter: "",
         category: "",
+        country: "",
     });
 
     useEffect(() => {
@@ -87,6 +88,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     has_screenshot: "",
                     psi_filter: "",
                     category: "",
+                    country: "",
                 });
 
                 const steps = cmp.sequence_steps || cmp.sequenceSteps || [];
@@ -1043,14 +1045,24 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                         <option value="good_90">Good (&ge; 90)</option>
                                                     </Form.Select>
                                                 </Col>
-                                                <Col md={3}>
+                                                <Col md={2}>
                                                     <Form.Label className="small fw-semibold mb-1">Category Filter</Form.Label>
                                                     <Form.Control
                                                         size="sm"
                                                         type="text"
                                                         placeholder="e.g. Plumber"
-                                                        value={autoSyncCriteria.category}
+                                                        value={autoSyncCriteria.category || ""}
                                                         onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, category: e.target.value })}
+                                                    />
+                                                </Col>
+                                                <Col md={3}>
+                                                    <Form.Label className="small fw-semibold mb-1">Country Filter</Form.Label>
+                                                    <Form.Control
+                                                        size="sm"
+                                                        type="text"
+                                                        placeholder="e.g. USA, US, India"
+                                                        value={autoSyncCriteria.country || ""}
+                                                        onChange={(e) => setAutoSyncCriteria({ ...autoSyncCriteria, country: e.target.value })}
                                                     />
                                                 </Col>
                                             </Row>
