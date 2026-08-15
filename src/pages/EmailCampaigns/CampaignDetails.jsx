@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar, Modal } from "react-bootstrap";
-import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye } from "react-icons/fi";
+import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye, FiEdit } from "react-icons/fi";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -16,6 +16,7 @@ import {
     retryAllFailedCampaignLeads,
 } from "../../api/emailCampaigns";
 import AssignLeadsModal from "./components/AssignLeadsModal";
+import CreateCampaignModal from "./components/CreateCampaignModal";
 import Pagination from "../../components/ui/Pagination";
 
 export default function CampaignDetails() {
@@ -35,6 +36,7 @@ export default function CampaignDetails() {
     const [search, setSearch] = useState("");
 
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [retryingLeadId, setRetryingLeadId] = useState(null);
     const [retryingAll, setRetryingAll] = useState(false);
 
@@ -293,6 +295,11 @@ export default function CampaignDetails() {
                             <span>Cancel Campaign</span>
                         </Button>
                     )}
+
+                    <Button variant="outline-dark" onClick={() => setShowEditModal(true)} className="d-flex align-items-center gap-2">
+                        <FiEdit />
+                        <span>Edit Campaign</span>
+                    </Button>
 
                     <Button variant="outline-primary" onClick={() => setShowAssignModal(true)} className="d-flex align-items-center gap-2">
                         <FiPlus />
@@ -579,6 +586,21 @@ export default function CampaignDetails() {
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            {/* Edit Campaign Modal */}
+            {showEditModal && (
+                <CreateCampaignModal
+                    show={showEditModal}
+                    onHide={() => setShowEditModal(false)}
+                    campaign={campaign}
+                    onSaved={() => {
+                        setShowEditModal(false);
+                        loadCampaignData();
+                        loadLeads(1);
+                        toast.success("Campaign updated successfully!");
+                    }}
+                />
+            )}
         </DashboardLayout>
     );
 }
