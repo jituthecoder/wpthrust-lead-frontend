@@ -243,18 +243,18 @@ export default function CampaignDetails() {
     return (
         <DashboardLayout title={`Campaign: ${campaign.name}`}>
             {/* Header / Back */}
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4 bg-white p-3 p-md-4 rounded-3 border border-light-subtle shadow-sm">
                 <div className="d-flex align-items-center gap-3">
                     <Button
                         variant="light"
-                        className="rounded-circle p-2 border"
+                        className="rounded-circle p-2 border shadow-sm"
                         onClick={() => navigate("/email-campaigns")}
                     >
                         <FiArrowLeft size={18} />
                     </Button>
                     <div>
-                        <div className="d-flex align-items-center gap-2">
-                            <h3 className="fw-bold m-0 text-dark">{campaign.name}</h3>
+                        <div className="d-flex align-items-center flex-wrap gap-2">
+                            <h4 className="fw-bold m-0 text-dark">{campaign.name}</h4>
                             <Badge
                                 bg={
                                     campaign.status === "running"
@@ -265,60 +265,62 @@ export default function CampaignDetails() {
                                         ? "info"
                                         : "secondary"
                                 }
-                                className="text-uppercase"
+                                className="text-uppercase px-2 py-1"
                             >
                                 {campaign.status}
                             </Badge>
                         </div>
                         {campaign.description && (
-                            <p className="text-muted m-0 small">{campaign.description}</p>
+                            <p className="text-muted m-0 small mt-1">{campaign.description}</p>
                         )}
                     </div>
                 </div>
 
-                <div className="d-flex gap-2">
+                <div className="d-flex flex-wrap align-items-center gap-2">
                     <Button
                         variant="outline-secondary"
                         onClick={loadCampaignData}
                         title="Refresh Stats"
+                        className="d-inline-flex align-items-center gap-1 py-2 px-3"
                     >
                         <FiRefreshCw />
+                        <span className="d-none d-sm-inline ms-1">Refresh</span>
                     </Button>
 
                     {(campaign.status === "draft" || campaign.status === "scheduled") && (
-                        <Button variant="success" onClick={handleStart} className="d-flex align-items-center gap-2">
+                        <Button variant="success" onClick={handleStart} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                             <FiPlay />
                             <span>Start Campaign</span>
                         </Button>
                     )}
 
                     {campaign.status === "running" && (
-                        <Button variant="warning" onClick={handlePause} className="d-flex align-items-center gap-2">
+                        <Button variant="warning" onClick={handlePause} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                             <FiPause />
                             <span>Pause Campaign</span>
                         </Button>
                     )}
 
                     {campaign.status === "paused" && (
-                        <Button variant="primary" onClick={handleResume} className="d-flex align-items-center gap-2">
+                        <Button variant="primary" onClick={handleResume} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                             <FiPlay />
                             <span>Resume Campaign</span>
                         </Button>
                     )}
 
                     {(campaign.status === "running" || campaign.status === "paused") && (
-                        <Button variant="outline-danger" onClick={handleCancel} className="d-flex align-items-center gap-2">
+                        <Button variant="outline-danger" onClick={handleCancel} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                             <FiXCircle />
-                            <span>Cancel Campaign</span>
+                            <span>Cancel</span>
                         </Button>
                     )}
 
-                    <Button variant="outline-dark" onClick={() => setShowEditModal(true)} className="d-flex align-items-center gap-2">
+                    <Button variant="outline-dark" onClick={() => setShowEditModal(true)} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                         <FiEdit />
-                        <span>Edit Campaign</span>
+                        <span>Edit</span>
                     </Button>
 
-                    <Button variant="outline-primary" onClick={() => setShowAssignModal(true)} className="d-flex align-items-center gap-2">
+                    <Button variant="outline-primary" onClick={() => setShowAssignModal(true)} className="d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap">
                         <FiPlus />
                         <span>Add Leads</span>
                     </Button>
@@ -326,94 +328,94 @@ export default function CampaignDetails() {
                     {campaign.auto_sync_enabled && (
                         <Button
                             variant="info"
-                            className="text-white d-flex align-items-center gap-2"
+                            className="text-white d-inline-flex align-items-center gap-2 py-2 px-3 text-nowrap"
                             onClick={handleSyncLeads}
                             disabled={syncingLeads}
                             title="Scan database and pull all matching imported leads into campaign"
                         >
                             {syncingLeads ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
-                            <span>Sync Auto-Match Leads</span>
+                            <span>Auto-Sync Leads</span>
                         </Button>
                     )}
                 </div>
             </div>
 
             {/* Performance Stats Cards */}
-            <Row className="g-3 mb-4">
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Total Leads</small>
-                            <h2 className="fw-bold text-dark mt-1 mb-0">{stats?.total_leads || 0}</h2>
-                            <small className="text-muted">Target audience</small>
+            <Row className="row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-xl-7 g-3 mb-4">
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Total Leads</small>
+                            <h3 className="fw-bold text-dark mt-2 mb-0">{stats?.total_leads || 0}</h3>
+                            <small className="text-muted text-nowrap">Target audience</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Sent Emails</small>
-                            <h2 className="fw-bold text-success mt-1 mb-0">{stats?.sent ?? campaign?.sent_count ?? 0}</h2>
-                            <small className="text-muted">Successfully delivered</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Sent Emails</small>
+                            <h3 className="fw-bold text-success mt-2 mb-0">{stats?.sent ?? campaign?.sent_count ?? 0}</h3>
+                            <small className="text-muted text-nowrap">Successfully delivered</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Open Rate</small>
-                            <h2 className="fw-bold text-success mt-1 mb-0">{stats?.open_rate ?? campaign?.open_rate ?? 0}%</h2>
-                            <small className="text-muted">{stats?.opened_count ?? campaign?.opened_count ?? 0} emails opened</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Open Rate</small>
+                            <h3 className="fw-bold text-success mt-2 mb-0">{stats?.open_rate ?? campaign?.open_rate ?? 0}%</h3>
+                            <small className="text-muted text-nowrap">{stats?.opened_count ?? campaign?.opened_count ?? 0} opened</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Click Rate</small>
-                            <h2 className="fw-bold text-primary mt-1 mb-0">{stats?.click_rate ?? campaign?.click_rate ?? 0}%</h2>
-                            <small className="text-muted">{stats?.clicked_count ?? campaign?.clicked_count ?? 0} links clicked</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Click Rate</small>
+                            <h3 className="fw-bold text-primary mt-2 mb-0">{stats?.click_rate ?? campaign?.click_rate ?? 0}%</h3>
+                            <small className="text-muted text-nowrap">{stats?.clicked_count ?? campaign?.clicked_count ?? 0} clicked</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Unsubscribed</small>
-                            <h2 className="fw-bold text-warning mt-1 mb-0">{stats?.unsubscribed || 0}</h2>
-                            <small className="text-muted">{stats?.unsubscribe_rate || 0}% unsubscribed</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Unsubscribed</small>
+                            <h3 className="fw-bold text-warning mt-2 mb-0">{stats?.unsubscribed || 0}</h3>
+                            <small className="text-muted text-nowrap">{stats?.unsubscribe_rate || 0}% rate</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Pending Queue</small>
-                            <h2 className="fw-bold text-primary mt-1 mb-0">{(stats?.pending || 0) + (stats?.processing || 0)}</h2>
-                            <small className="text-muted">Awaiting dispatch</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Pending Queue</small>
+                            <h3 className="fw-bold text-info mt-2 mb-0">{(stats?.pending || 0) + (stats?.processing || 0)}</h3>
+                            <small className="text-muted text-nowrap">Awaiting dispatch</small>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                <Col sm={6} md={4} lg style={{ minWidth: "160px" }}>
-                    <Card className="border-0 shadow-sm h-100 bg-white">
-                        <Card.Body>
-                            <small className="text-muted fw-semibold text-uppercase">Failed Deliveries</small>
-                            <h2 className="fw-bold text-danger mt-1 mb-0">{stats?.failed || 0}</h2>
-                            <small className="text-muted">Bounced or error</small>
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Failed</small>
+                            <h3 className="fw-bold text-danger mt-2 mb-0">{stats?.failed || 0}</h3>
+                            <small className="text-muted text-nowrap">Bounced/error</small>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
 
             {/* Progress Bar Card */}
-            <Card className="border-0 shadow-sm mb-4">
-                <Card.Body>
+            <Card className="border-0 shadow-sm mb-4 rounded-3">
+                <Card.Body className="p-3 p-md-4">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <span className="fw-bold text-dark">Campaign Progress</span>
                         <span className="fw-bold text-primary">{campaign?.status === "completed" ? 100 : (stats?.progress || 0)}% Completed</span>
@@ -428,8 +430,8 @@ export default function CampaignDetails() {
             </Card>
 
             {/* Leads Table Card */}
-            <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-white border-0 pt-3 pb-2">
+            <Card className="border-0 shadow-sm rounded-3">
+                <Card.Header className="bg-white border-0 p-3 p-md-4 pb-2">
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                         <h5 className="fw-bold m-0 text-dark">Campaign Audience & Execution Logs</h5>
 
@@ -464,7 +466,7 @@ export default function CampaignDetails() {
                                     size="sm"
                                     onClick={handleRetryAllFailed}
                                     disabled={retryingAll}
-                                    className="d-flex align-items-center gap-1"
+                                    className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3"
                                 >
                                     {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
                                     <span>Retry All Failed</span>
@@ -486,16 +488,16 @@ export default function CampaignDetails() {
                         </div>
                     ) : (
                         <div className="table-responsive">
-                            <Table hover align="middle" className="mb-0">
+                            <Table hover align="middle" className="mb-0 text-nowrap" style={{ minWidth: "1050px" }}>
                                 <thead className="table-light">
                                     <tr>
-                                        <th>Business Lead</th>
-                                        <th>Target Email</th>
-                                        <th>Delivered From</th>
-                                        <th>Status</th>
-                                        <th>Sent / Processed At</th>
-                                        <th>Error Details</th>
-                                        <th className="text-end">Actions</th>
+                                        <th style={{ width: "22%" }}>Business Lead</th>
+                                        <th style={{ width: "22%" }}>Target Email</th>
+                                        <th style={{ width: "18%" }}>Delivered From</th>
+                                        <th style={{ width: "12%" }}>Status</th>
+                                        <th style={{ width: "16%" }}>Sent / Processed At</th>
+                                        <th style={{ width: "15%" }}>Error Details</th>
+                                        <th className="text-end" style={{ width: "10%" }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
