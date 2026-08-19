@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar, Modal } from "react-bootstrap";
-import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye, FiEdit } from "react-icons/fi";
+import { FiArrowLeft, FiPlay, FiPause, FiRefreshCw, FiPlus, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiSearch, FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import {
@@ -15,6 +15,7 @@ import {
     retryCampaignLead,
     retryAllFailedCampaignLeads,
     syncCampaignLeads,
+    removeCampaignLead,
 } from "../../api/emailCampaigns";
 import AssignLeadsModal from "./components/AssignLeadsModal";
 import CreateCampaignModal from "./components/CreateCampaignModal";
@@ -197,6 +198,20 @@ export default function CampaignDetails() {
             toast.error("Failed to sync matching leads");
         } finally {
             setSyncingLeads(false);
+        }
+    };
+
+    const handleRemoveLead = async (leadId) => {
+        if (!window.confirm("Are you sure you want to remove this lead from the campaign?")) {
+            return;
+        }
+        try {
+            await removeCampaignLead(id, leadId);
+            toast.success("Lead removed from campaign");
+            loadLeads(pagination.current_page || 1);
+            loadCampaignData();
+        } catch (error) {
+            toast.error("Failed to remove lead");
         }
     };
 
@@ -405,9 +420,19 @@ export default function CampaignDetails() {
                 <Col>
                     <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
                         <Card.Body className="p-3">
+                            <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Bounced</small>
+                            <h3 className="fw-bold text-danger mt-2 mb-0">{stats?.bounced || 0}</h3>
+                            <small className="text-muted text-nowrap">Invalid/bounce</small>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                <Col>
+                    <Card className="border-0 shadow-sm h-100 bg-white rounded-3">
+                        <Card.Body className="p-3">
                             <small className="text-muted fw-semibold text-uppercase text-truncate d-block">Failed</small>
                             <h3 className="fw-bold text-danger mt-2 mb-0">{stats?.failed || 0}</h3>
-                            <small className="text-muted text-nowrap">Bounced/error</small>
+                            <small className="text-muted text-nowrap">Send errors</small>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -457,6 +482,7 @@ export default function CampaignDetails() {
                                 <option value="processing">Processing</option>
                                 <option value="sent">Sent</option>
                                 <option value="unsubscribed">Unsubscribed</option>
+                                <option value="bounced">Bounced</option>
                                 <option value="failed">Failed</option>
                             </Form.Select>
 
@@ -553,6 +579,16 @@ export default function CampaignDetails() {
                                                             )}
                                                         </Button>
                                                     )}
+
+                                                    <Button
+                                                        variant="outline-danger"
+                                                        size="sm"
+                                                        onClick={() => handleRemoveLead(lead.id)}
+                                                        title="Remove lead from campaign"
+                                                        className="d-inline-flex align-items-center"
+                                                    >
+                                                        <FiTrash2 size={14} />
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>

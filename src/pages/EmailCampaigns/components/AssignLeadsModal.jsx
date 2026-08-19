@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Modal, Button, Form, Spinner, Table, Row, Col, Badge, Pagination } from "react-bootstrap";
-import { FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
+import { FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare, FiBookOpen, FiUsers } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { assignCampaignLeads } from "../../../api/emailCampaigns";
 import { getBusinesses, getBusinessCategories, getBusinessCountries } from "../../../api/business";
+import { getContactLists, importContactListToCampaign } from "../../../api/contactLists";
 
 export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned }) {
     const [submitting, setSubmitting] = useState(false);
@@ -11,6 +12,11 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
     const [businesses, setBusinesses] = useState([]);
     const [categories, setCategories] = useState([]);
     const [countries, setCountries] = useState([]);
+
+    // Contact lists state
+    const [savedContactLists, setSavedContactLists] = useState([]);
+    const [loadingContactLists, setLoadingContactLists] = useState(false);
+    const [importingListId, setImportingListId] = useState(null);
 
     // Map storing full objects of selected leads: { [id]: businessObject }
     const [selectedMap, setSelectedMap] = useState({});
@@ -88,6 +94,33 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
             toast.error("Failed to load business directory");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadSavedContactLists = async () => {
+        try {
+            setLoadingContactLists(true);
+            const res = await getContactLists({ per_page: 100 });
+            setSavedContactLists(res.data.data?.data || []);
+        } catch (err) {
+            toast.error("Failed to load saved contact lists");
+        } finally {
+            setLoadingContactLists(false);
+        }
+    };
+
+    const handleImportContactList = async (listId, listName) => {
+        if (!campaignId) return;
+        try {
+            setImportingListId(listId);
+            const res = await importContactListToCampaign(campaignId, listId);
+            toast.success(res.data.message || `Imported contacts from '${listName}' into campaign!`);
+            onAssigned();
+            onHide();
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to import contact list");
+        } finally {
+            setImportingListId(null);
         }
     };
 
@@ -217,6 +250,18 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                                 <span>Lead Directory ({totalCount})</span>
                             </Button>
                             <Button
+                                variant={viewMode === "contact_list" ? "info" : "outline-info"}
+                                size="sm"
+                                onClick={() => {
+                                    setViewMode("contact_list");
+                                    loadSavedContactLists();
+                                }}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                <FiBookOpen />
+                                <span>Import Saved Contact List</span>
+                            </Button>
+                            <Button
                                 variant={viewMode === "selected" ? "success" : "outline-success"}
                                 size="sm"
                                 onClick={() => setViewMode("selected")}
@@ -233,6 +278,73 @@ export default function AssignLeadsModal({ show, onHide, campaignId, onAssigned 
                             </Button>
                         )}
                     </div>
+
+                    {/* Contact Lists View Mode */}
+                    {viewMode === "contact_list" && (
+                        <div className="p-3 bg-light rounded border mb-3">
+                            <h6 className="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                                <FiBookOpen className="text-info" />
+                                <span>Saved Contact Segment Lists</span>
+                            </h6>
+                            <p className="text-muted small mb-3">
+                                Select a pre-segmented contact list (e.g. content-need-contact, optimization-service-needed) to import all its contacts into this campaign with 1 click.
+                            </p>
+
+                            {loadingContactLists ? (
+                                <div className="text-center py-4">
+                                    <Spinner animation="border" variant="info" />
+                                </div>
+                            ) : savedContactLists.length === 0 ? (
+                                <div className="text-center py-4 bg-white rounded border text-muted">
+                                    <FiBookOpen size={32} className="mb-2 text-muted" />
+                                    <h6>No Saved Contact Lists Found</h6>
+                                    <small>Go to <strong>Contacts</strong> in the main left sidebar to create custom segment lists.</small>
+                                </div>
+                            ) : (
+                                <Row className="g-3">
+                                    {savedContactLists.map((list) => (
+                                        <Col key={list.id} md={6}>
+                                            <Card className="border shadow-sm h-100">
+                                                <Card.Body className="d-flex flex-column justify-content-between p-3">
+                                                    <div>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <h6 className="fw-bold text-primary mb-0">{list.name}</h6>
+                                                            <Badge bg="info" className="px-2 py-1">
+                                                                <FiUsers className="me-1" /> {list.total_contacts || 0} Contacts
+                                                            </Badge>
+                                                        </div>
+                                                        <p className="text-muted small mb-3">
+                                                            {list.description || "Segmented contact list."}
+                                                        </p>
+                                                    </div>
+
+                                                    <Button
+                                                        variant="success"
+                                                        size="sm"
+                                                        className="w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold"
+                                                        onClick={() => handleImportContactList(list.id, list.name)}
+                                                        disabled={importingListId === list.id || (list.total_contacts || 0) === 0}
+                                                    >
+                                                        {importingListId === list.id ? (
+                                                            <>
+                                                                <Spinner size="sm" animation="border" />
+                                                                <span>Importing...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FiCheckCircle />
+                                                                <span>Import All {list.total_contacts || 0} Leads to Campaign</span>
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </Card.Body>
+                                            </Card>
+                                        </Col>
+                                    ))}
+                                </Row>
+                            )}
+                        </div>
+                    )}
 
                     {/* Filter Bar (Shown in Directory View Mode) */}
                     {viewMode === "all" && (

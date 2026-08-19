@@ -164,12 +164,19 @@ function Inbox() {
     const handleToggleStar = async (e, msg) => {
         e.stopPropagation();
         try {
-            await toggleInboxStar(msg.id);
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === msg.id ? { ...m, is_starred: !m.is_starred } : m
-                )
-            );
+            const res = await toggleInboxStar(msg.id);
+            const newStarred = res.data?.data?.is_starred ?? !msg.is_starred;
+            setMessages((prev) => {
+                if (folder === "starred" && !newStarred) {
+                    return prev.filter((m) => m.id !== msg.id);
+                }
+                return prev.map((m) =>
+                    m.id === msg.id ? { ...m, is_starred: newStarred } : m
+                );
+            });
+            if (selectedMessage?.id === msg.id) {
+                setSelectedMessage((prev) => (prev ? { ...prev, is_starred: newStarred } : null));
+            }
         } catch (err) {
             console.error(err);
         }
@@ -438,9 +445,19 @@ function Inbox() {
                                             <span className="inbox-item-sender">
                                                 {msg.from_name || msg.from_email}
                                             </span>
-                                            <span className="inbox-item-time">
-                                                {new Date(msg.received_at || msg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                            </span>
+                                            <div className="d-flex align-items-center gap-1">
+                                                <span className="inbox-item-time">
+                                                    {new Date(msg.received_at || msg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-link p-0 text-decoration-none border-0 ms-1"
+                                                    onClick={(e) => handleToggleStar(e, msg)}
+                                                    title={msg.is_starred ? "Unstar" : "Star"}
+                                                >
+                                                    <FiStar style={{ color: msg.is_starred ? "#f59e0b" : "#cbd5e1", fill: msg.is_starred ? "#f59e0b" : "none" }} />
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="inbox-item-subject">{msg.subject}</div>
                                         <div className="inbox-item-snippet">{msg.snippet}</div>
@@ -470,10 +487,11 @@ function Inbox() {
                                     </div>
                                     <div className="d-flex align-items-center gap-2">
                                         <button
-                                            className={`btn btn-sm btn-outline-warning ${selectedMessage.is_starred ? "active" : ""}`}
+                                            className={`btn btn-sm ${selectedMessage.is_starred ? "btn-warning text-white" : "btn-outline-secondary"}`}
                                             onClick={(e) => handleToggleStar(e, selectedMessage)}
+                                            title={selectedMessage.is_starred ? "Unstar" : "Star"}
                                         >
-                                            <FiStar />
+                                            <FiStar style={{ fill: selectedMessage.is_starred ? "#ffffff" : "none" }} />
                                         </button>
                                         <button
                                             className="btn btn-sm btn-outline-danger"

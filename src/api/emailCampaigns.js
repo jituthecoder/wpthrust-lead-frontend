@@ -84,3 +84,7 @@ export const retryAllFailedCampaignLeads = (campaignId) => {
 export const syncCampaignLeads = (campaignId) => {
     return axiosClient.post(`/email-campaigns/${campaignId}/sync-leads`);
 };
+
+export const removeCampaignLead = (campaignId, campaignLeadId) => {
+    return axiosClient.delete(`/email-campaigns/${campaignId}/leads/${campaignLeadId}`);
+};

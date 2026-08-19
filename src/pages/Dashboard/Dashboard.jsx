@@ -8,7 +8,8 @@ import {
     FiPhone,
     FiCheckCircle,
     FiBriefcase,
-    FiTrendingUp
+    FiTrendingUp,
+    FiAlertOctagon,
 } from "react-icons/fi";
 import { Spinner } from "react-bootstrap";
 
@@ -95,6 +96,16 @@ function Dashboard() {
                         subtitle="Potential Clients"
                         icon={<FiCheckCircle />}
                         color="#f59e0b"
+                    />
+                </div>
+
+                <div className="col-12 col-sm-6 col-xl-3">
+                    <StatCard
+                        title="Bounced Emails"
+                        value={stats.bounced_emails ?? stats.bounced_leads ?? 0}
+                        subtitle="Undeliverable Leads"
+                        icon={<FiAlertOctagon />}
+                        color="#dc2626"
                     />
                 </div>
 

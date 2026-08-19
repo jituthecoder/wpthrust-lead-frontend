@@ -3,11 +3,12 @@ import { Modal, Button, Form, Spinner, Row, Col, Badge, Card, Table, Pagination 
 import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
-import { FiPlus, FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare } from "react-icons/fi";
+import { FiPlus, FiCamera, FiGlobe, FiZap, FiTrash2, FiCheckCircle, FiList, FiCheckSquare, FiBookOpen, FiUsers } from "react-icons/fi";
 import { createEmailCampaign, updateEmailCampaign, getEmailCampaign } from "../../../api/emailCampaigns";
 import { getEmailTemplates } from "../../../api/emailTemplates";
 import { getEmailSenders } from "../../../api/emailSenders";
 import { getBusinesses, getBusinessCategories, getBusinessCountries } from "../../../api/business";
+import { getContactLists, getContactListLeads } from "../../../api/contactLists";
 import SenderModal from "./SenderModal";
 
 export default function CreateCampaignModal({ show, onHide, campaign = null, onSaved }) {
@@ -23,8 +24,15 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     const [countries, setCountries] = useState([]);
     const [loadingOptions, setLoadingOptions] = useState(false);
 
-    // View Mode tab in Step 4: "all" or "selected"
-    const [leadViewMode, setLeadViewMode] = useState("all");
+    // Contact Lists state for Hunter.io style selection
+    const [savedContactLists, setSavedContactLists] = useState([]);
+    const [loadingContactLists, setLoadingContactLists] = useState(false);
+    const [selectedContactListId, setSelectedContactListId] = useState(null);
+    const [selectedContactListName, setSelectedContactListName] = useState(null);
+    const [selectedContactListTotal, setSelectedContactListTotal] = useState(0);
+
+    // View Mode tab in Step 4: "contact_list", "all", or "selected"
+    const [leadViewMode, setLeadViewMode] = useState("contact_list");
 
     // Scalable map storing selected leads: { [id]: businessObject }
     const [selectedMap, setSelectedMap] = useState({});
@@ -103,17 +111,8 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     setSequenceSteps([]);
                 }
 
-                if (cmp.leads) {
-                    const map = {};
-                    cmp.leads.forEach((l) => {
-                        if (l.business) {
-                            map[l.business_id] = l.business;
-                        } else {
-                            map[l.business_id] = { id: l.business_id, business_name: `Business #${l.business_id}`, email: "-" };
-                        }
-                    });
-                    setSelectedMap(map);
-                }
+                // Clear selectedMap so leads are not loaded or sent when editing
+                setSelectedMap({});
             };
 
             if (campaign) {
@@ -165,11 +164,39 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             setSenders(senderRes.data.data?.data || senderRes.data.data || []);
             setCategories(catRes.data.data || []);
             setCountries(countryRes.data.data || []);
-            await loadLeadsFiltered();
+            await Promise.all([loadLeadsFiltered(), loadSavedContactLists()]);
         } catch (error) {
             console.error("Failed to load campaign options", error);
         } finally {
             setLoadingOptions(false);
+        }
+    };
+
+    const loadSavedContactLists = async () => {
+        try {
+            setLoadingContactLists(true);
+            const res = await getContactLists({ per_page: 100 });
+            setSavedContactLists(res.data.data?.data || []);
+        } catch (err) {
+            console.error("Failed to load saved contact lists", err);
+        } finally {
+            setLoadingContactLists(false);
+        }
+    };
+
+    const handleSelectContactList = (list) => {
+        if (selectedContactListId === list.id) {
+            // Deselect list
+            setSelectedContactListId(null);
+            setSelectedContactListName(null);
+            setSelectedContactListTotal(0);
+            toast.success(`Deselected contact list '${list.name}'`);
+        } else {
+            setSelectedContactListId(list.id);
+            setSelectedContactListName(list.name);
+            setSelectedContactListTotal(list.total_contacts || 0);
+            setSelectedMap({}); // Clear manual business selections
+            toast.success(`Selected contact list '${list.name}' (${list.total_contacts || 0} contacts)!`);
         }
     };
 
@@ -311,7 +338,9 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             e.stopPropagation();
         }
 
-        if (step !== 5) {
+        const maxStep = isEdit ? 4 : 5;
+
+        if (step !== maxStep) {
             return;
         }
 
@@ -325,8 +354,8 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
             setStep(3);
             return;
         }
-        if (selectedIds.length === 0) {
-            toast.error("Please select at least one target business lead.");
+        if (!isEdit && !selectedContactListId && selectedIds.length === 0 && !autoSyncEnabled) {
+            toast.error("Please select a contact list, target business leads, or enable auto-sync.");
             setStep(4);
             return;
         }
@@ -339,11 +368,19 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 email_template_id: parseInt(formData.email_template_id, 10),
                 scheduled_at: formData.scheduled_at || null,
                 senders: formData.senders,
-                businesses: selectedIds,
                 sequence_steps: sequenceSteps,
                 auto_sync_enabled: autoSyncEnabled,
                 auto_sync_criteria: autoSyncCriteria,
             };
+
+            // Attach contact_list_id OR businesses array when creating a new campaign.
+            if (!isEdit) {
+                if (selectedContactListId) {
+                    payload.contact_list_id = selectedContactListId;
+                } else if (selectedIds.length > 0) {
+                    payload.businesses = selectedIds;
+                }
+            }
 
             if (isEdit) {
                 await updateEmailCampaign(campaign.id, payload);
@@ -362,6 +399,22 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         }
     };
 
+    const maxStep = isEdit ? 4 : 5;
+    const stepItems = isEdit
+        ? [
+            { num: 1, label: "Basic Info" },
+            { num: 2, label: "Template" },
+            { num: 3, label: "Senders" },
+            { num: 4, label: "Schedule & Save" },
+          ]
+        : [
+            { num: 1, label: "Basic Info" },
+            { num: 2, label: "Template" },
+            { num: 3, label: "Senders" },
+            { num: 4, label: "Target Leads" },
+            { num: 5, label: "Schedule & Launch" },
+          ];
+
     return (
         <Modal show={show} onHide={onHide} size="xl" centered>
             <Modal.Header closeButton className="border-0">
@@ -369,7 +422,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                     {isEdit ? `Edit Campaign: ${campaign?.name}` : "Create New Email Campaign"}
                 </Modal.Title>
             </Modal.Header>
-            <Form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter' && step < 5) e.preventDefault(); }}>
+            <Form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter' && step < maxStep) e.preventDefault(); }}>
                 <Modal.Body className="pt-0">
                     {loadingOptions ? (
                         <div className="text-center py-5">
@@ -380,13 +433,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                         <div>
                             {/* Step Indicator */}
                             <div className="d-flex justify-content-between mb-4 border-bottom pb-3">
-                                {[
-                                    { num: 1, label: "Basic Info" },
-                                    { num: 2, label: "Template" },
-                                    { num: 3, label: "Senders" },
-                                    { num: 4, label: "Target Leads" },
-                                    { num: 5, label: "Schedule & Launch" },
-                                ].map((s) => (
+                                {stepItems.map((s) => (
                                     <button
                                         key={s.num}
                                         type="button"
@@ -564,38 +611,126 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                 </div>
                             )}
 
-                            {/* Step 4: Target Leads */}
-                            {step === 4 && (
+                            {/* Step 4: Target Leads (New Campaign Only) */}
+                            {!isEdit && step === 4 && (
                                 <div>
-                                    {/* View Mode Selector Tabs */}
-                                    <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                                        <div className="btn-group">
-                                            <Button
-                                                variant={leadViewMode === "all" ? "primary" : "outline-secondary"}
-                                                size="sm"
-                                                onClick={() => setLeadViewMode("all")}
-                                                className="d-flex align-items-center gap-2"
-                                            >
-                                                <FiList />
-                                                <span>Lead Directory ({totalCount})</span>
-                                            </Button>
-                                            <Button
-                                                variant={leadViewMode === "selected" ? "success" : "outline-success"}
-                                                size="sm"
-                                                onClick={() => setLeadViewMode("selected")}
-                                                className="d-flex align-items-center gap-2"
-                                            >
-                                                <FiCheckCircle />
-                                                <span>Selected Target Leads ({selectedIds.length})</span>
-                                            </Button>
-                                        </div>
+                                     {/* View Mode Selector Tabs */}
+                                     <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                         <div className="btn-group">
+                                             <Button
+                                                 variant={leadViewMode === "contact_list" ? "info" : "outline-info"}
+                                                 size="sm"
+                                                 onClick={() => {
+                                                     setLeadViewMode("contact_list");
+                                                     loadSavedContactLists();
+                                                 }}
+                                                 className="d-flex align-items-center gap-2"
+                                             >
+                                                 <FiBookOpen />
+                                                 <span>Select Saved Contact List</span>
+                                             </Button>
+                                             <Button
+                                                 variant={leadViewMode === "all" ? "primary" : "outline-secondary"}
+                                                 size="sm"
+                                                 onClick={() => setLeadViewMode("all")}
+                                                 className="d-flex align-items-center gap-2"
+                                             >
+                                                 <FiList />
+                                                 <span>Lead Directory ({totalCount})</span>
+                                             </Button>
+                                             <Button
+                                                 variant={leadViewMode === "selected" ? "success" : "outline-success"}
+                                                 size="sm"
+                                                 onClick={() => setLeadViewMode("selected")}
+                                                 className="d-flex align-items-center gap-2"
+                                             >
+                                                  <FiCheckCircle />
+                                                  <span>Selected Target Leads ({selectedContactListId ? selectedContactListTotal : selectedIds.length})</span>
+                                             </Button>
+                                         </div>
 
-                                        {leadViewMode === "selected" && selectedIds.length > 0 && (
-                                            <Button variant="outline-danger" size="sm" onClick={clearAllSelectedBusinesses}>
-                                                Clear All Selected
-                                            </Button>
-                                        )}
-                                    </div>
+                                         {leadViewMode === "selected" && selectedIds.length > 0 && (
+                                             <Button variant="outline-danger" size="sm" onClick={clearAllSelectedBusinesses}>
+                                                 Clear All Selected
+                                             </Button>
+                                         )}
+                                     </div>
+
+                                     {/* Contact List View Mode (Hunter.io Style List Selection) */}
+                                     {leadViewMode === "contact_list" && (
+                                         <div className="p-3 bg-light rounded border mb-3">
+                                             <div className="d-flex justify-content-between align-items-center mb-2">
+                                                 <div>
+                                                     <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                                         <FiBookOpen className="text-info" />
+                                                         <span>Select a Lead Contact List to add Recipients</span>
+                                                     </h6>
+                                                     <small className="text-muted">
+                                                         Choose a segmented contact list to import its contacts directly into this campaign.
+                                                     </small>
+                                                 </div>
+                                             </div>
+
+                                             {loadingContactLists ? (
+                                                 <div className="text-center py-4">
+                                                     <Spinner animation="border" variant="info" />
+                                                 </div>
+                                             ) : savedContactLists.length === 0 ? (
+                                                 <div className="text-center py-4 bg-white rounded border text-muted">
+                                                     <FiBookOpen size={32} className="mb-2 text-muted" />
+                                                     <h6>No Saved Contact Lists Found</h6>
+                                                     <small>Go to <strong>Contacts</strong> in the main left sidebar to create custom segment lists.</small>
+                                                 </div>
+                                             ) : (
+                                                 <Row className="g-3">
+                                                     {savedContactLists.map((list) => {
+                                                         const isSelected = selectedContactListId === list.id;
+                                                         return (
+                                                             <Col key={list.id} md={6}>
+                                                                 <Card
+                                                                     className={`border shadow-sm h-100 ${isSelected ? "border-info bg-white" : ""}`}
+                                                                 >
+                                                                     <Card.Body className="d-flex flex-column justify-content-between p-3">
+                                                                         <div>
+                                                                             <div className="d-flex justify-content-between align-items-start mb-2">
+                                                                                 <h6 className="fw-bold text-primary mb-0">{list.name}</h6>
+                                                                                 <Badge bg="info" className="px-2 py-1">
+                                                                                     <FiUsers className="me-1" /> {list.total_contacts || 0} Contacts
+                                                                                 </Badge>
+                                                                             </div>
+                                                                             <p className="text-muted small mb-3">
+                                                                                 {list.description || "Segmented contact list."}
+                                                                             </p>
+                                                                         </div>
+
+                                                                         <Button
+                                                                             variant={isSelected ? "success" : "outline-primary"}
+                                                                             size="sm"
+                                                                             className="w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold"
+                                                                             onClick={() => handleSelectContactList(list)}
+                                                                             disabled={(list.total_contacts || 0) === 0}
+                                                                         >
+                                                                             {isSelected ? (
+                                                                                 <>
+                                                                                     <FiCheckCircle />
+                                                                                     <span>Selected List ({list.total_contacts} Contacts)</span>
+                                                                                 </>
+                                                                             ) : (
+                                                                                 <>
+                                                                                     <FiPlus />
+                                                                                     <span>Select List ({list.total_contacts} Contacts)</span>
+                                                                                 </>
+                                                                             )}
+                                                                         </Button>
+                                                                     </Card.Body>
+                                                                 </Card>
+                                                             </Col>
+                                                         );
+                                                     })}
+                                                 </Row>
+                                             )}
+                                         </div>
+                                     )}
 
                                     {/* Advanced Filter Toolbar (Shown in Directory View Mode) */}
                                     {leadViewMode === "all" && (
@@ -910,8 +1045,8 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                 </div>
                             )}
 
-                            {/* Step 5: Schedule & Review */}
-                            {step === 5 && (
+                            {/* Step 4 for Edit, or Step 5 for New: Schedule & Review */}
+                            {((isEdit && step === 4) || (!isEdit && step === 5)) && (
                                 <div>
                                     <h6 className="fw-bold mb-3 text-dark">Campaign Sequence & Launch Settings</h6>
 
@@ -1135,14 +1270,14 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                             Back
                         </Button>
                     )}
-                    {step < 5 ? (
+                    {step < maxStep ? (
                         <Button
                             variant="primary"
                             type="button"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setStep((s) => Math.min(s + 1, 5));
+                                setStep((s) => Math.min(s + 1, maxStep));
                             }}
                         >
                             Next Step

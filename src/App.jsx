@@ -19,9 +19,15 @@ import LeadDetails from "./pages/MyLeads/LeadDetails";
 // Follow-ups
 import Followups from "./pages/Followups/Followups";
 
-// Email Campaigns
+// Contacts & Segments
+import Contacts from "./pages/Contacts/Contacts";
+import ContactDetails from "./pages/Contacts/ContactDetails";
+
+// Email Campaigns & Outbound Tools
 import EmailCampaigns from "./pages/EmailCampaigns/EmailCampaigns";
 import CampaignDetails from "./pages/EmailCampaigns/CampaignDetails";
+import EmailSenders from "./pages/EmailSenders/EmailSenders";
+import EmailTemplates from "./pages/EmailTemplates/EmailTemplates";
 
 // Unified Inbox
 import Inbox from "./pages/Inbox/Inbox";
@@ -102,6 +108,25 @@ function App() {
                 }
             />
 
+            {/* Contacts & Segment Lists */}
+            <Route
+                path="/contacts"
+                element={
+                    <ProtectedRoute>
+                        <Contacts />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/contacts/:id"
+                element={
+                    <ProtectedRoute>
+                        <ContactDetails />
+                    </ProtectedRoute>
+                }
+            />
+
             {/* Email Campaigns */}
             <Route
                 path="/email-campaigns"
@@ -117,6 +142,26 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <CampaignDetails />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Email Senders */}
+            <Route
+                path="/email-senders"
+                element={
+                    <ProtectedRoute>
+                        <EmailSenders />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Email Templates */}
+            <Route
+                path="/email-templates"
+                element={
+                    <ProtectedRoute>
+                        <EmailTemplates />
                     </ProtectedRoute>
                 }
             />

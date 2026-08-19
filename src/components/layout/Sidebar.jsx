@@ -8,7 +8,10 @@ import {
     FiUsers,
     FiLogOut,
     FiX,
-    FiLayers
+    FiLayers,
+    FiServer,
+    FiFileText,
+    FiBookOpen,
 } from "react-icons/fi";
 import "../../assets/css/sidebar.css";
 import { useAuth } from "../../contexts/AuthContext";
@@ -88,12 +91,39 @@ function Sidebar({ mobile = false, onClose }) {
                 </NavLink>
 
                 <NavLink
+                    to="/contacts"
+                    className="nav-link"
+                    onClick={handleNavClick}
+                >
+                    <FiBookOpen />
+                    <span>Contacts</span>
+                </NavLink>
+
+                <NavLink
                     to="/email-campaigns"
                     className="nav-link"
                     onClick={handleNavClick}
                 >
                     <FiSend />
                     <span>Email Campaigns</span>
+                </NavLink>
+
+                <NavLink
+                    to="/email-senders"
+                    className="nav-link"
+                    onClick={handleNavClick}
+                >
+                    <FiServer />
+                    <span>Email Senders</span>
+                </NavLink>
+
+                <NavLink
+                    to="/email-templates"
+                    className="nav-link"
+                    onClick={handleNavClick}
+                >
+                    <FiFileText />
+                    <span>Email Templates</span>
                 </NavLink>
 
                 <NavLink
