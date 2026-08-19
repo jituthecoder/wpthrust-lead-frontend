@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar } from "react-bootstrap";
-import { FiPlus, FiSearch, FiCheckCircle, FiSend, FiEdit3, FiTrash2, FiActivity, FiList, FiGrid } from "react-icons/fi";
+import { FiPlus, FiSearch, FiCheckCircle, FiSend, FiEdit3, FiTrash2, FiActivity, FiList, FiGrid, FiAlertTriangle, FiRefreshCw } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import toast from "react-hot-toast";
@@ -276,9 +276,10 @@ export default function SendersTab() {
                                 <th style={{ minWidth: "220px" }}>Account & Sender Details</th>
                                 <th>Email Address</th>
                                 <th>Provider</th>
+                                <th>Status</th>
                                 <th style={{ minWidth: "160px" }}>Daily Limit</th>
                                 <th style={{ minWidth: "150px" }}>Hourly Limit</th>
-                                <th className="text-end" style={{ minWidth: "220px" }}>Actions</th>
+                                <th className="text-end" style={{ minWidth: "260px" }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -287,7 +288,7 @@ export default function SendersTab() {
                                 const hourlyPct = Math.min(100, Math.round(((sender.sent_this_hour || 0) / (sender.hourly_limit || 20)) * 100));
 
                                 return (
-                                    <tr key={sender.id}>
+                                    <tr key={sender.id} className={sender.requires_reauth || !sender.is_active ? "table-warning" : ""}>
                                         <td>
                                             <div className="fw-bold text-dark">{sender.name}</div>
                                             <small className="text-muted">{sender.display_name || "—"}</small>
@@ -296,6 +297,24 @@ export default function SendersTab() {
                                             <span className="fw-medium text-primary">{sender.email}</span>
                                         </td>
                                         <td>{renderProviderBadge(sender.provider)}</td>
+                                        <td>
+                                            {sender.requires_reauth || !sender.is_active ? (
+                                                <div>
+                                                    <Badge bg="danger" className="d-inline-flex align-items-center gap-1 px-2 py-1">
+                                                        <FiAlertTriangle /> Disabled - Re-auth Needed
+                                                    </Badge>
+                                                    {sender.error_message && (
+                                                        <small className="text-danger d-block mt-1" style={{ fontSize: "11px", maxWidth: "200px" }}>
+                                                            {sender.error_message}
+                                                        </small>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <Badge bg="success" className="d-inline-flex align-items-center gap-1 px-2 py-1">
+                                                    <FiCheckCircle /> Active
+                                                </Badge>
+                                            )}
+                                        </td>
                                         <td>
                                             <div className="d-flex justify-content-between small fw-semibold text-dark mb-1">
                                                 <span>{sender.sent_today || 0} / {sender.daily_limit}</span>
@@ -320,6 +339,19 @@ export default function SendersTab() {
                                         </td>
                                         <td className="text-end">
                                             <div className="d-flex gap-1 justify-content-end align-items-center">
+                                                {(sender.requires_reauth || !sender.is_active) && (
+                                                    <Button
+                                                        variant="warning"
+                                                        size="sm"
+                                                        onClick={() => handleAddSender(sender.provider)}
+                                                        className="d-flex align-items-center gap-1 fw-bold text-dark"
+                                                        title="Re-authorize Account"
+                                                    >
+                                                        <FiRefreshCw />
+                                                        <span>Re-authorize</span>
+                                                    </Button>
+                                                )}
+
                                                 <Button
                                                     variant="outline-info"
                                                     size="sm"
@@ -390,7 +422,24 @@ export default function SendersTab() {
                                             {renderProviderBadge(sender.provider)}
                                         </div>
 
-                                        <p className="text-primary fw-medium mb-3 small">{sender.email}</p>
+                                        <p className="text-primary fw-medium mb-2 small">{sender.email}</p>
+
+                                        {(sender.requires_reauth || !sender.is_active) && (
+                                            <div className="alert alert-danger p-2 mb-3 small d-flex flex-column gap-1">
+                                                <div className="d-flex align-items-center gap-1 fw-bold text-danger">
+                                                    <FiAlertTriangle /> Re-authorization Required
+                                                </div>
+                                                <small className="text-dark">{sender.error_message || "Authentication token expired. Please re-authorize."}</small>
+                                                <Button
+                                                    variant="warning"
+                                                    size="sm"
+                                                    className="w-100 fw-bold text-dark d-flex align-items-center justify-content-center gap-1 mt-1"
+                                                    onClick={() => handleAddSender(sender.provider)}
+                                                >
+                                                    <FiRefreshCw /> Re-authorize Account
+                                                </Button>
+                                            </div>
+                                        )}
 
                                         <div className="bg-light p-2 rounded mb-3">
                                             <div className="d-flex justify-content-between small text-muted mb-1">

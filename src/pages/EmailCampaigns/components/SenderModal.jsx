@@ -93,6 +93,7 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
 
     useEffect(() => {
         if (sender) {
+            const savedSettings = sender.senderAccount?.settings || sender.sender_account?.settings || sender.settings || {};
             setFormData({
                 name: sender.name || "",
                 display_name: sender.display_name || "",
@@ -102,11 +103,11 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
                 hourly_limit: sender.hourly_limit || 20,
                 signature: sender.signature || "",
                 settings: {
-                    host: sender.sender_account?.settings?.host || "",
-                    port: sender.sender_account?.settings?.port || 587,
-                    username: sender.sender_account?.settings?.username || "",
-                    password: sender.sender_account?.settings?.password || "",
-                    encryption: sender.sender_account?.settings?.encryption || "tls",
+                    host: savedSettings.host || "",
+                    port: savedSettings.port || 587,
+                    username: savedSettings.username || sender.email || "",
+                    password: "",
+                    encryption: savedSettings.encryption || "tls",
                 },
             });
         } else {
@@ -217,49 +218,6 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
                 <Modal.Body className="pt-3">
-                    {/* Hunter.io Style Quick Provider Selector (Shown when creating new sender) */}
-                    {!isEdit && (
-                        <div className="mb-4 bg-light p-3 rounded border">
-                            <label className="fw-bold small text-dark d-block mb-2">Connect Email Account Type</label>
-                            <div className="d-flex flex-wrap gap-2">
-                                <Button
-                                    variant={formData.provider === "gmail" ? "primary" : "outline-secondary"}
-                                    type="button"
-                                    size="sm"
-                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                    style={{ borderColor: formData.provider === "gmail" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "gmail" ? "2px" : "1px" }}
-                                    onClick={() => handleSelectProvider("gmail")}
-                                >
-                                    <FcGoogle size={18} />
-                                    <span>Sign in with Google</span>
-                                </Button>
-
-                                <Button
-                                    variant={formData.provider === "outlook" ? "primary" : "outline-secondary"}
-                                    type="button"
-                                    size="sm"
-                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                    style={{ borderColor: formData.provider === "outlook" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "outlook" ? "2px" : "1px" }}
-                                    onClick={() => handleSelectProvider("outlook")}
-                                >
-                                    <BsMicrosoft size={16} className="text-primary" />
-                                    <span>Sign in with Microsoft</span>
-                                </Button>
-
-                                <Button
-                                    variant={formData.provider === "smtp" ? "primary" : "outline-secondary"}
-                                    type="button"
-                                    size="sm"
-                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                    style={{ borderColor: formData.provider === "smtp" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "smtp" ? "2px" : "1px" }}
-                                    onClick={() => handleSelectProvider("smtp")}
-                                >
-                                    <FiPlus size={16} />
-                                    <span>Connect SMTP/IMAP</span>
-                                </Button>
-                            </div>
-                        </div>
-                    )}
 
                     <Row className="g-3">
                         <Col md={6}>
@@ -428,14 +386,16 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
 
                                 <Col md={6}>
                                     <Form.Group>
-                                        <Form.Label className="fw-semibold small">SMTP Password *</Form.Label>
+                                        <Form.Label className="fw-semibold small">
+                                            SMTP Password {isEdit ? "(Leave blank to keep unchanged)" : "*"}
+                                        </Form.Label>
                                         <Form.Control
                                             type="password"
                                             name="password"
-                                            placeholder="SMTP Password"
+                                            placeholder={isEdit ? "•••••••• (Leave blank to keep current password)" : "SMTP Password"}
                                             value={formData.settings.password}
                                             onChange={handleSettingChange}
-                                            required={formData.provider === "smtp"}
+                                            required={!isEdit && formData.provider === "smtp"}
                                         />
                                     </Form.Group>
                                 </Col>
