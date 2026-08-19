@@ -23,6 +23,9 @@ import Followups from "./pages/Followups/Followups";
 import EmailCampaigns from "./pages/EmailCampaigns/EmailCampaigns";
 import CampaignDetails from "./pages/EmailCampaigns/CampaignDetails";
 
+// Unified Inbox
+import Inbox from "./pages/Inbox/Inbox";
+
 function App() {
     return (
         <>
@@ -114,6 +117,16 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <CampaignDetails />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Unified Inbox */}
+            <Route
+                path="/inbox"
+                element={
+                    <ProtectedRoute>
+                        <Inbox />
                     </ProtectedRoute>
                 }
             />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Button, Form, Badge, Spinner, Table } from "react-bootstrap";
-import { FiPlus, FiSearch, FiCheckCircle, FiSend, FiEdit3, FiTrash2, FiActivity } from "react-icons/fi";
+import { Row, Col, Card, Button, Form, Badge, Spinner, Table, ProgressBar } from "react-bootstrap";
+import { FiPlus, FiSearch, FiCheckCircle, FiSend, FiEdit3, FiTrash2, FiActivity, FiList, FiGrid } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
 import toast from "react-hot-toast";
@@ -16,6 +16,7 @@ export default function SendersTab() {
     const [pagination, setPagination] = useState({});
     const [search, setSearch] = useState("");
     const [providerFilter, setProviderFilter] = useState("");
+    const [viewMode, setViewMode] = useState("table"); // 'table' or 'grid'
 
     const [showSenderModal, setShowSenderModal] = useState(false);
     const [selectedSender, setSelectedSender] = useState(null);
@@ -27,9 +28,21 @@ export default function SendersTab() {
     const loadSenders = async (page = 1) => {
         try {
             setLoading(true);
-            const res = await getEmailSenders({ page, search, provider: providerFilter });
-            setSenders(res.data.data.data || []);
-            setPagination(res.data.data || {});
+            const params = {
+                page,
+                search,
+                provider: providerFilter,
+            };
+            const res = await getEmailSenders(params);
+            if (res.data?.success) {
+                setSenders(res.data.data.data || []);
+                setPagination({
+                    current_page: res.data.data.current_page,
+                    last_page: res.data.data.last_page,
+                    total: res.data.data.total,
+                    per_page: res.data.data.per_page,
+                });
+            }
         } catch (error) {
             toast.error("Failed to load email senders");
         } finally {
@@ -39,14 +52,6 @@ export default function SendersTab() {
 
     useEffect(() => {
         loadSenders(1);
-        const params = new URLSearchParams(window.location.search);
-        if (params.has("oauth_success")) {
-            toast.success(params.get("oauth_success"));
-            window.history.replaceState({}, document.title, window.location.pathname);
-        } else if (params.has("oauth_error")) {
-            toast.error(params.get("oauth_error"));
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
     }, [search, providerFilter]);
 
     const handleGoogleOAuthRedirect = async () => {
@@ -63,9 +68,27 @@ export default function SendersTab() {
         }
     };
 
+    const handleMicrosoftOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/microsoft/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Microsoft authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "MICROSOFT_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
+    };
+
     const handleAddSender = (prov = "smtp") => {
         if (prov === "gmail") {
             handleGoogleOAuthRedirect();
+            return;
+        }
+        if (prov === "outlook" || prov === "microsoft") {
+            handleMicrosoftOAuthRedirect();
             return;
         }
         setSelectedSender(null);
@@ -79,13 +102,14 @@ export default function SendersTab() {
     };
 
     const handleDeleteSender = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this sender account?")) return;
+        if (!window.confirm("Are you sure you want to delete this email sender?")) return;
+
         try {
             await deleteEmailSender(id);
-            toast.success("Sender deleted successfully");
+            toast.success("Email sender deleted successfully!");
             loadSenders(pagination.current_page || 1);
         } catch (error) {
-            toast.error("Failed to delete sender");
+            toast.error("Failed to delete email sender");
         }
     };
 
@@ -93,13 +117,13 @@ export default function SendersTab() {
         try {
             setTestingSenderId(sender.id);
             const res = await testSenderConnection(sender.id);
-            if (res.data.success) {
-                toast.success(`Connection test successful for ${sender.email}!`);
+            if (res.data?.success) {
+                toast.success(`[${sender.name}] Connection test successful!`);
             } else {
-                toast.error(res.data.message || "Connection failed");
+                toast.error(res.data?.message || `[${sender.name}] Connection test failed`);
             }
         } catch (error) {
-            toast.error("Connection test failed");
+            toast.error(`[${sender.name}] Connection test failed`);
         } finally {
             setTestingSenderId(null);
         }
@@ -110,15 +134,42 @@ export default function SendersTab() {
         setShowTestModal(true);
     };
 
+    const renderProviderBadge = (provider) => {
+        const prov = (provider || "smtp").toLowerCase();
+        if (prov === "gmail") {
+            return (
+                <Badge bg="light" className="text-dark border d-inline-flex align-items-center gap-1 px-2 py-1 fw-semibold">
+                    <FcGoogle size={14} /> Gmail
+                </Badge>
+            );
+        }
+        if (prov === "outlook" || prov === "microsoft") {
+            return (
+                <Badge bg="primary" className="text-uppercase d-inline-flex align-items-center gap-1 px-2 py-1 fw-semibold">
+                    <BsMicrosoft size={12} /> Outlook
+                </Badge>
+            );
+        }
+        return (
+            <Badge bg="dark" className="text-uppercase px-2 py-1 fw-semibold">
+                SMTP
+            </Badge>
+        );
+    };
+
     return (
         <div>
-            {/* Hunter.io Style Quick Connection Banner */}
-            <Card className="border-0 shadow-sm mb-4 bg-white">
-                <Card.Body className="p-3">
-                    <h6 className="fw-bold text-dark mb-1">Sender accounts</h6>
-                    <p className="text-muted small mb-3">
-                        Select the email account(s) to send the sequence. If multiple accounts are chosen, the emails will be distributed among them.
-                    </p>
+            {/* Quick Provider Connect Hero Banner */}
+            <Card className="border-0 shadow-sm mb-4 bg-light">
+                <Card.Body className="p-4">
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                        <div>
+                            <h5 className="fw-bold mb-1 text-dark">Email Senders & Accounts</h5>
+                            <p className="text-muted small mb-0">
+                                Connect Gmail, Outlook / Microsoft 365, or Custom SMTP accounts to distribute cold email campaigns seamlessly.
+                            </p>
+                        </div>
+                    </div>
 
                     <div className="d-flex flex-wrap gap-2 align-items-center">
                         <Button
@@ -151,7 +202,7 @@ export default function SendersTab() {
                 </Card.Body>
             </Card>
 
-            {/* Action Bar */}
+            {/* Action Bar & Controls */}
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                     <div className="position-relative" style={{ minWidth: "260px" }}>
@@ -176,9 +227,31 @@ export default function SendersTab() {
                         <option value="outlook">Outlook</option>
                     </Form.Select>
                 </div>
+
+                {/* View Mode Toggle (Table vs Cards Grid) */}
+                <div className="d-flex align-items-center gap-1 bg-white p-1 border rounded shadow-sm">
+                    <Button
+                        variant={viewMode === "table" ? "primary" : "light"}
+                        size="sm"
+                        className="d-flex align-items-center gap-1 px-3 py-1 fw-medium"
+                        onClick={() => setViewMode("table")}
+                    >
+                        <FiList size={16} />
+                        <span>Table View</span>
+                    </Button>
+                    <Button
+                        variant={viewMode === "grid" ? "primary" : "light"}
+                        size="sm"
+                        className="d-flex align-items-center gap-1 px-3 py-1 fw-medium"
+                        onClick={() => setViewMode("grid")}
+                    >
+                        <FiGrid size={16} />
+                        <span>Grid View</span>
+                    </Button>
+                </div>
             </div>
 
-            {/* List / Cards */}
+            {/* Content Area: Table View vs Grid View */}
             {loading ? (
                 <div className="text-center py-5">
                     <Spinner animation="border" variant="primary" />
@@ -188,13 +261,121 @@ export default function SendersTab() {
                 <Card className="border-0 shadow-sm text-center py-5">
                     <Card.Body>
                         <h5 className="fw-bold text-muted mb-2">No Email Senders Configured</h5>
-                        <p className="text-muted mb-3">Add your SMTP or email accounts to start launching cold email campaigns.</p>
+                        <p className="text-muted mb-3">Add your SMTP or OAuth email accounts to start launching cold email campaigns.</p>
                         <Button variant="outline-primary" onClick={() => handleAddSender("smtp")}>
                             <FiPlus className="me-1" /> Add Your First Sender
                         </Button>
                     </Card.Body>
                 </Card>
+            ) : viewMode === "table" ? (
+                /* Sleek Table View for Hundreds of Senders */
+                <Card className="border-0 shadow-sm overflow-hidden">
+                    <Table hover responsive className="align-middle mb-0">
+                        <thead className="table-light">
+                            <tr>
+                                <th style={{ minWidth: "220px" }}>Account & Sender Details</th>
+                                <th>Email Address</th>
+                                <th>Provider</th>
+                                <th style={{ minWidth: "160px" }}>Daily Limit</th>
+                                <th style={{ minWidth: "150px" }}>Hourly Limit</th>
+                                <th className="text-end" style={{ minWidth: "220px" }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {senders.map((sender) => {
+                                const dailyPct = Math.min(100, Math.round(((sender.sent_today || 0) / (sender.daily_limit || 100)) * 100));
+                                const hourlyPct = Math.min(100, Math.round(((sender.sent_this_hour || 0) / (sender.hourly_limit || 20)) * 100));
+
+                                return (
+                                    <tr key={sender.id}>
+                                        <td>
+                                            <div className="fw-bold text-dark">{sender.name}</div>
+                                            <small className="text-muted">{sender.display_name || "—"}</small>
+                                        </td>
+                                        <td>
+                                            <span className="fw-medium text-primary">{sender.email}</span>
+                                        </td>
+                                        <td>{renderProviderBadge(sender.provider)}</td>
+                                        <td>
+                                            <div className="d-flex justify-content-between small fw-semibold text-dark mb-1">
+                                                <span>{sender.sent_today || 0} / {sender.daily_limit}</span>
+                                                <span>{dailyPct}%</span>
+                                            </div>
+                                            <ProgressBar
+                                                now={dailyPct}
+                                                variant={dailyPct > 80 ? "warning" : "primary"}
+                                                style={{ height: "5px" }}
+                                            />
+                                        </td>
+                                        <td>
+                                            <div className="d-flex justify-content-between small fw-semibold text-dark mb-1">
+                                                <span>{sender.sent_this_hour || 0} / {sender.hourly_limit}</span>
+                                                <span>{hourlyPct}%</span>
+                                            </div>
+                                            <ProgressBar
+                                                now={hourlyPct}
+                                                variant={hourlyPct > 80 ? "warning" : "info"}
+                                                style={{ height: "5px" }}
+                                            />
+                                        </td>
+                                        <td className="text-end">
+                                            <div className="d-flex gap-1 justify-content-end align-items-center">
+                                                <Button
+                                                    variant="outline-info"
+                                                    size="sm"
+                                                    onClick={() => handleTestConnection(sender)}
+                                                    disabled={testingSenderId === sender.id}
+                                                    title="Test Connection"
+                                                    className="d-flex align-items-center gap-1"
+                                                >
+                                                    {testingSenderId === sender.id ? (
+                                                        <Spinner size="sm" animation="border" />
+                                                    ) : (
+                                                        <FiCheckCircle />
+                                                    )}
+                                                    <span className="d-none d-xl-inline">Test</span>
+                                                </Button>
+
+                                                <Button
+                                                    variant="outline-success"
+                                                    size="sm"
+                                                    onClick={() => handleOpenTestEmail(sender)}
+                                                    title="Send Test Email"
+                                                    className="d-flex align-items-center gap-1"
+                                                >
+                                                    <FiSend />
+                                                    <span className="d-none d-xl-inline">Send Mail</span>
+                                                </Button>
+
+                                                <Button
+                                                    variant="light"
+                                                    size="sm"
+                                                    onClick={() => handleEditSender(sender)}
+                                                    title="Edit Sender"
+                                                    className="border"
+                                                >
+                                                    <FiEdit3 />
+                                                </Button>
+
+                                                <Button
+                                                    variant="light"
+                                                    size="sm"
+                                                    className="text-danger border"
+                                                    onClick={() => handleDeleteSender(sender.id)}
+                                                    title="Delete Sender"
+                                                >
+                                                    <FiTrash2 />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </Table>
+                </Card>
             ) : (
+                /* Cards / Grid View */
                 <Row className="g-3">
                     {senders.map((sender) => (
                         <Col key={sender.id} lg={6} xl={4}>
@@ -206,9 +387,7 @@ export default function SendersTab() {
                                                 <h5 className="fw-bold mb-0 text-dark">{sender.name}</h5>
                                                 <small className="text-muted">{sender.display_name}</small>
                                             </div>
-                                            <Badge bg="primary" className="text-uppercase" style={{ fontSize: "10px" }}>
-                                                {sender.provider}
-                                            </Badge>
+                                            {renderProviderBadge(sender.provider)}
                                         </div>
 
                                         <p className="text-primary fw-medium mb-3 small">{sender.email}</p>
@@ -275,8 +454,6 @@ export default function SendersTab() {
                     ))}
                 </Row>
             )}
-
-            {!loading && senders.length === 0 && null}
 
             {!loading && senders.length > 0 && (
                 <div className="mt-4">

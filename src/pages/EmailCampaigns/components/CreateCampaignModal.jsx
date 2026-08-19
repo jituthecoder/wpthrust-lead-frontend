@@ -195,6 +195,34 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         }
     };
 
+    const handleGoogleOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/google/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Google authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "GOOGLE_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
+    };
+
+    const handleMicrosoftOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/microsoft/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Microsoft authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "MICROSOFT_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
+    };
+
     const toggleSender = (senderId) => {
         setFormData((prev) => {
             const exists = prev.senders.includes(senderId);
@@ -464,10 +492,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                 variant="light"
                                                 type="button"
                                                 className="d-flex align-items-center gap-2 px-3 py-2 border shadow-sm fw-semibold text-dark bg-white"
-                                                onClick={() => {
-                                                    setInitialSenderProvider("gmail");
-                                                    setShowSenderModal(true);
-                                                }}
+                                                onClick={handleGoogleOAuthRedirect}
                                             >
                                                 <FcGoogle size={18} />
                                                 <span>Sign in with Google</span>
@@ -477,10 +502,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                 variant="light"
                                                 type="button"
                                                 className="d-flex align-items-center gap-2 px-3 py-2 border shadow-sm fw-semibold text-dark bg-white"
-                                                onClick={() => {
-                                                    setInitialSenderProvider("outlook");
-                                                    setShowSenderModal(true);
-                                                }}
+                                                onClick={handleMicrosoftOAuthRedirect}
                                             >
                                                 <BsMicrosoft size={16} className="text-primary" />
                                                 <span>Sign in with Microsoft</span>

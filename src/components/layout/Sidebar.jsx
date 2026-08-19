@@ -4,6 +4,7 @@ import {
     FiPhoneCall,
     FiCalendar,
     FiSend,
+    FiMail,
     FiUsers,
     FiLogOut,
     FiX,
@@ -93,6 +94,15 @@ function Sidebar({ mobile = false, onClose }) {
                 >
                     <FiSend />
                     <span>Email Campaigns</span>
+                </NavLink>
+
+                <NavLink
+                    to="/inbox"
+                    className="nav-link"
+                    onClick={handleNavClick}
+                >
+                    <FiMail />
+                    <span>Inbox</span>
                 </NavLink>
 
                 {user?.role === "super_admin" && (

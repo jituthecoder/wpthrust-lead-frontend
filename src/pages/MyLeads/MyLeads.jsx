@@ -32,6 +32,9 @@ export default function MyLeads() {
         search: "",
         status: "",
         category: "",
+        location: "",
+        created_at: "",
+        has_website: "",
         assigned: "",
         assigned_user_id: "",
     });

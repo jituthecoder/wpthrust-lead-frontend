@@ -1,5 +1,5 @@
 import { Table, Spinner } from "react-bootstrap";
-import { FiEye, FiPhone, FiGlobe } from "react-icons/fi";
+import { FiEye, FiPhone, FiGlobe, FiUser } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 export default function LeadTable({
@@ -10,6 +10,17 @@ export default function LeadTable({
     toggleAll,
 }) {
     const navigate = useNavigate();
+
+    function formatDate(dateString) {
+        if (!dateString) return "-";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
+    }
 
     if (loading) {
         return (
@@ -40,6 +51,8 @@ export default function LeadTable({
                             </th>
                             <th>Business Name</th>
                             <th>Category</th>
+                            <th>Assigned To</th>
+                            <th>Created Date</th>
                             <th width="120" className="text-center pe-3">Actions</th>
                         </tr>
                     </thead>
@@ -47,7 +60,7 @@ export default function LeadTable({
                     <tbody>
                         {leads.length === 0 ? (
                             <tr>
-                                <td colSpan="4" className="text-center py-5">
+                                <td colSpan="6" className="text-center py-5">
                                     <div className="text-muted">
                                         <p className="fw-semibold mb-1">No leads found</p>
                                         <small>Try adjusting your search or filters.</small>
@@ -62,6 +75,12 @@ export default function LeadTable({
                                     websiteUrl.toLowerCase() !== "n/a" &&
                                     websiteUrl !== "-"
                                 );
+
+                                const assignedName = lead.assigned_user
+                                    ? lead.assigned_user.name
+                                    : lead.assigned_user_id
+                                    ? `User #${lead.assigned_user_id}`
+                                    : null;
 
                                 return (
                                     <tr key={lead.id}>
@@ -113,6 +132,31 @@ export default function LeadTable({
                                                 style={{ fontSize: "0.75rem", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "100%" }}
                                             >
                                                 {lead.category || "General"}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            {assignedName ? (
+                                                <span
+                                                    className="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle font-normal d-inline-flex align-items-center gap-1"
+                                                    style={{ fontSize: "0.75rem" }}
+                                                >
+                                                    <FiUser size={12} />
+                                                    <span>{assignedName}</span>
+                                                </span>
+                                            ) : (
+                                                <span
+                                                    className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle font-normal"
+                                                    style={{ fontSize: "0.75rem" }}
+                                                >
+                                                    Unassigned
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        <td>
+                                            <span className="text-secondary small fw-medium" style={{ fontSize: "0.8rem" }}>
+                                                {formatDate(lead.created_at)}
                                             </span>
                                         </td>
 

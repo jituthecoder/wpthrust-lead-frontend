@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Modal, Button, Form, Spinner, Row, Col, Card } from "react-bootstrap";
+import { Modal, Button, Form, Spinner, Row, Col } from "react-bootstrap";
 import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
 import { BsMicrosoft } from "react-icons/bs";
-import { FiServer, FiPlus } from "react-icons/fi";
+import { FiPlus, FiCheckCircle } from "react-icons/fi";
 import { createEmailSender, updateEmailSender, testSenderConnection } from "../../../api/emailSenders";
 import axiosClient from "../../../api/axios";
 
@@ -29,6 +29,8 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
         },
     });
 
+    const isOAuth = formData.provider === "gmail" || formData.provider === "outlook" || formData.provider === "microsoft";
+
     const getProviderDefaults = (prov) => {
         if (prov === "gmail") {
             return { host: "smtp.gmail.com", port: 587, encryption: "tls" };
@@ -53,9 +55,27 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
         }
     };
 
+    const handleMicrosoftOAuthRedirect = async () => {
+        try {
+            const res = await axiosClient.get("/oauth/microsoft/redirect?mode=json");
+            if (res.data?.success && res.data?.url) {
+                window.location.href = res.data.url;
+            } else {
+                toast.error("Failed to fetch Microsoft authentication URL.");
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "MICROSOFT_CLIENT_ID is not configured in .env file.";
+            toast.error(msg);
+        }
+    };
+
     const handleSelectProvider = (prov) => {
         if (prov === "gmail") {
             handleGoogleOAuthRedirect();
+            return;
+        }
+        if (prov === "outlook" || prov === "microsoft") {
+            handleMicrosoftOAuthRedirect();
             return;
         }
         const defaults = getProviderDefaults(prov);
@@ -133,14 +153,22 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
         e.preventDefault();
         try {
             setSubmitting(true);
+
+            const existingSettings = sender?.sender_account?.settings 
+                || sender?.senderAccount?.settings 
+                || sender?.settings 
+                || {};
+
             const payload = {
                 ...formData,
                 daily_limit: parseInt(formData.daily_limit, 10),
                 hourly_limit: parseInt(formData.hourly_limit, 10),
-                settings: {
-                    ...formData.settings,
-                    port: parseInt(formData.settings.port, 10),
-                },
+                settings: isOAuth
+                    ? (Object.keys(existingSettings).length > 0 ? existingSettings : { is_oauth: true })
+                    : {
+                        ...formData.settings,
+                        port: parseInt(formData.settings.port || 587, 10),
+                    },
             };
 
             if (isEdit) {
@@ -189,47 +217,49 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
                 <Modal.Body className="pt-3">
-                    {/* Hunter.io Style Quick Provider Selector */}
-                    <div className="mb-4 bg-light p-3 rounded border">
-                        <label className="fw-bold small text-dark d-block mb-2">Connect Email Account Type</label>
-                        <div className="d-flex flex-wrap gap-2">
-                            <Button
-                                variant={formData.provider === "gmail" ? "primary" : "outline-secondary"}
-                                type="button"
-                                size="sm"
-                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                style={{ borderColor: formData.provider === "gmail" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "gmail" ? "2px" : "1px" }}
-                                onClick={() => handleSelectProvider("gmail")}
-                            >
-                                <FcGoogle size={18} />
-                                <span>Sign in with Google</span>
-                            </Button>
+                    {/* Hunter.io Style Quick Provider Selector (Shown when creating new sender) */}
+                    {!isEdit && (
+                        <div className="mb-4 bg-light p-3 rounded border">
+                            <label className="fw-bold small text-dark d-block mb-2">Connect Email Account Type</label>
+                            <div className="d-flex flex-wrap gap-2">
+                                <Button
+                                    variant={formData.provider === "gmail" ? "primary" : "outline-secondary"}
+                                    type="button"
+                                    size="sm"
+                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                    style={{ borderColor: formData.provider === "gmail" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "gmail" ? "2px" : "1px" }}
+                                    onClick={() => handleSelectProvider("gmail")}
+                                >
+                                    <FcGoogle size={18} />
+                                    <span>Sign in with Google</span>
+                                </Button>
 
-                            <Button
-                                variant={formData.provider === "outlook" ? "primary" : "outline-secondary"}
-                                type="button"
-                                size="sm"
-                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                style={{ borderColor: formData.provider === "outlook" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "outlook" ? "2px" : "1px" }}
-                                onClick={() => handleSelectProvider("outlook")}
-                            >
-                                <BsMicrosoft size={16} className="text-primary" />
-                                <span>Sign in with Microsoft</span>
-                            </Button>
+                                <Button
+                                    variant={formData.provider === "outlook" ? "primary" : "outline-secondary"}
+                                    type="button"
+                                    size="sm"
+                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                    style={{ borderColor: formData.provider === "outlook" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "outlook" ? "2px" : "1px" }}
+                                    onClick={() => handleSelectProvider("outlook")}
+                                >
+                                    <BsMicrosoft size={16} className="text-primary" />
+                                    <span>Sign in with Microsoft</span>
+                                </Button>
 
-                            <Button
-                                variant={formData.provider === "smtp" ? "primary" : "outline-secondary"}
-                                type="button"
-                                size="sm"
-                                className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
-                                style={{ borderColor: formData.provider === "smtp" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "smtp" ? "2px" : "1px" }}
-                                onClick={() => handleSelectProvider("smtp")}
-                            >
-                                <FiPlus size={16} />
-                                <span>Connect SMTP/IMAP</span>
-                            </Button>
+                                <Button
+                                    variant={formData.provider === "smtp" ? "primary" : "outline-secondary"}
+                                    type="button"
+                                    size="sm"
+                                    className="d-flex align-items-center gap-2 px-3 py-2 fw-medium bg-white text-dark border"
+                                    style={{ borderColor: formData.provider === "smtp" ? "#0d6efd" : "#dee2e6", borderWidth: formData.provider === "smtp" ? "2px" : "1px" }}
+                                    onClick={() => handleSelectProvider("smtp")}
+                                >
+                                    <FiPlus size={16} />
+                                    <span>Connect SMTP/IMAP</span>
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <Row className="g-3">
                         <Col md={6}>
@@ -282,6 +312,7 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
                                     value={formData.provider}
                                     onChange={handleChange}
                                     required
+                                    disabled={isEdit && isOAuth}
                                 >
                                     <option value="smtp">SMTP Server</option>
                                     <option value="gmail">Google / Gmail</option>
@@ -320,81 +351,111 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
                             </Form.Group>
                         </Col>
 
-                        <Col md={12}>
-                            <hr className="my-2" />
-                            <h6 className="fw-bold mb-3 text-primary">SMTP / Provider Settings</h6>
-                        </Col>
+                        {/* OAuth Provider vs SMTP Settings Section */}
+                        {isOAuth ? (
+                            <Col md={12}>
+                                <div className="bg-light p-3 rounded border my-2 d-flex align-items-center justify-content-between">
+                                    <div className="d-flex align-items-center gap-2">
+                                        {formData.provider === "gmail" ? <FcGoogle size={24} /> : <BsMicrosoft size={22} className="text-primary" />}
+                                        <div>
+                                            <h6 className="fw-bold mb-0 text-dark">
+                                                {formData.provider === "gmail" ? "Google OAuth Account" : "Microsoft 365 / Outlook OAuth Account"}
+                                            </h6>
+                                            <small className="text-muted">
+                                                Authenticated via OAuth 2.0. No SMTP host or password required.
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        type="button"
+                                        onClick={() => handleSelectProvider(formData.provider)}
+                                        className="d-inline-flex align-items-center gap-1"
+                                    >
+                                        <span>Re-authenticate</span>
+                                    </Button>
+                                </div>
+                            </Col>
+                        ) : (
+                            <>
+                                <Col md={12}>
+                                    <hr className="my-2" />
+                                    <h6 className="fw-bold mb-3 text-primary">SMTP Server Settings</h6>
+                                </Col>
 
-                        <Col md={8}>
-                            <Form.Group>
-                                <Form.Label className="fw-semibold small">SMTP Host *</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="host"
-                                    placeholder="smtp.gmail.com or mail.domain.com"
-                                    value={formData.settings.host}
-                                    onChange={handleSettingChange}
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
+                                <Col md={8}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold small">SMTP Host *</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            name="host"
+                                            placeholder="smtp.domain.com"
+                                            value={formData.settings.host}
+                                            onChange={handleSettingChange}
+                                            required={formData.provider === "smtp"}
+                                        />
+                                    </Form.Group>
+                                </Col>
 
-                        <Col md={4}>
-                            <Form.Group>
-                                <Form.Label className="fw-semibold small">Port *</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    name="port"
-                                    placeholder="587"
-                                    value={formData.settings.port}
-                                    onChange={handleSettingChange}
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
+                                <Col md={4}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold small">Port *</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            name="port"
+                                            placeholder="587"
+                                            value={formData.settings.port}
+                                            onChange={handleSettingChange}
+                                            required={formData.provider === "smtp"}
+                                        />
+                                    </Form.Group>
+                                </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="fw-semibold small">SMTP Username *</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="username"
-                                    placeholder="your-email@domain.com"
-                                    value={formData.settings.username}
-                                    onChange={handleSettingChange}
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold small">SMTP Username *</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            name="username"
+                                            placeholder="your-email@domain.com"
+                                            value={formData.settings.username}
+                                            onChange={handleSettingChange}
+                                            required={formData.provider === "smtp"}
+                                        />
+                                    </Form.Group>
+                                </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="fw-semibold small">SMTP Password *</Form.Label>
-                                <Form.Control
-                                    type="password"
-                                    name="password"
-                                    placeholder="App Password or SMTP password"
-                                    value={formData.settings.password}
-                                    onChange={handleSettingChange}
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold small">SMTP Password *</Form.Label>
+                                        <Form.Control
+                                            type="password"
+                                            name="password"
+                                            placeholder="SMTP Password"
+                                            value={formData.settings.password}
+                                            onChange={handleSettingChange}
+                                            required={formData.provider === "smtp"}
+                                        />
+                                    </Form.Group>
+                                </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label className="fw-semibold small">Encryption *</Form.Label>
-                                <Form.Select
-                                    name="encryption"
-                                    value={formData.settings.encryption}
-                                    onChange={handleSettingChange}
-                                    required
-                                >
-                                    <option value="tls">TLS (Port 587)</option>
-                                    <option value="ssl">SSL (Port 465)</option>
-                                </Form.Select>
-                            </Form.Group>
-                        </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold small">Encryption *</Form.Label>
+                                        <Form.Select
+                                            name="encryption"
+                                            value={formData.settings.encryption}
+                                            onChange={handleSettingChange}
+                                            required={formData.provider === "smtp"}
+                                        >
+                                            <option value="tls">TLS (Port 587)</option>
+                                            <option value="ssl">SSL (Port 465)</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </>
+                        )}
 
                         <Col md={12}>
                             <Form.Group>
@@ -418,9 +479,10 @@ export default function SenderModal({ show, onHide, sender = null, initialProvid
                             type="button"
                             onClick={handleTestConnection}
                             disabled={testing || submitting}
-                            className="me-auto"
+                            className="me-auto d-inline-flex align-items-center gap-1"
                         >
-                            {testing ? <Spinner size="sm" animation="border" /> : "Test Connection"}
+                            {testing ? <Spinner size="sm" animation="border" /> : <FiCheckCircle />}
+                            <span>Test Connection</span>
                         </Button>
                     )}
                     <Button variant="light" onClick={onHide} disabled={submitting}>
