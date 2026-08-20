@@ -35,6 +35,8 @@ export default function CampaignDetails() {
     const [leads, setLeads] = useState([]);
     const [pagination, setPagination] = useState({});
     const [statusFilter, setStatusFilter] = useState("");
+    const [errorFilter, setErrorFilter] = useState("");
+    const [selectedLeadIds, setSelectedLeadIds] = useState([]);
     const [search, setSearch] = useState("");
 
     const [showAssignModal, setShowAssignModal] = useState(false);
@@ -172,15 +174,37 @@ export default function CampaignDetails() {
         }
     };
 
-    const handleRetryAllFailed = async () => {
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedLeadIds(leads.map((l) => l.id));
+        } else {
+            setSelectedLeadIds([]);
+        }
+    };
+
+    const handleSelectLead = (leadId) => {
+        setSelectedLeadIds((prev) =>
+            prev.includes(leadId) ? prev.filter((i) => i !== leadId) : [...prev, leadId]
+        );
+    };
+
+    const handleRetryAllFailed = async (overrideFilter = null, targetLeadIds = null) => {
         try {
             setRetryingAll(true);
-            const res = await retryAllFailedCampaignLeads(id);
+            const filterToUse = overrideFilter !== null ? overrideFilter : errorFilter;
+            const idsToUse = targetLeadIds || (selectedLeadIds.length > 0 ? selectedLeadIds : null);
+
+            const res = await retryAllFailedCampaignLeads(id, {
+                error_filter: filterToUse,
+                lead_ids: idsToUse,
+            });
+
             toast.success(res.data.message || "Failed leads queued for retry");
+            setSelectedLeadIds([]);
             loadLeads(1);
             loadCampaignData();
         } catch (error) {
-            toast.error("Failed to retry all failed leads");
+            toast.error("Failed to retry leads");
         } finally {
             setRetryingAll(false);
         }
@@ -475,7 +499,7 @@ export default function CampaignDetails() {
                             <Form.Select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{ width: "160px" }}
+                                style={{ width: "150px" }}
                             >
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
@@ -486,17 +510,56 @@ export default function CampaignDetails() {
                                 <option value="failed">Failed</option>
                             </Form.Select>
 
-                            {(stats?.failed || 0) > 0 && (
+                            {(statusFilter === "failed" || (stats?.failed || 0) > 0) && (
+                                <Form.Select
+                                    value={errorFilter}
+                                    onChange={(e) => setErrorFilter(e.target.value)}
+                                    style={{ width: "190px" }}
+                                >
+                                    <option value="">All Failure Reasons</option>
+                                    <option value="auth">🔐 OAuth / Auth Token Errors</option>
+                                    <option value="connection">🔌 SMTP / Connection Errors</option>
+                                    <option value="bounce">📫 Bounced / Rejected</option>
+                                </Form.Select>
+                            )}
+
+                            {selectedLeadIds.length > 0 ? (
                                 <Button
-                                    variant="outline-danger"
+                                    variant="warning"
                                     size="sm"
-                                    onClick={handleRetryAllFailed}
+                                    onClick={() => handleRetryAllFailed(null, selectedLeadIds)}
                                     disabled={retryingAll}
-                                    className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3"
+                                    className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3 fw-bold text-dark"
                                 >
                                     {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
-                                    <span>Retry All Failed</span>
+                                    <span>Retry Selected ({selectedLeadIds.length})</span>
                                 </Button>
+                            ) : (stats?.failed || 0) > 0 && (
+                                <div className="d-flex gap-2">
+                                    <Button
+                                        variant="warning"
+                                        size="sm"
+                                        onClick={() => handleRetryAllFailed("auth")}
+                                        disabled={retryingAll}
+                                        className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3 fw-bold text-dark"
+                                        title="Retry leads that failed due to account re-authorization / token issues"
+                                    >
+                                        {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
+                                        <span>Retry Auth Errors</span>
+                                    </Button>
+
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => handleRetryAllFailed(null)}
+                                        disabled={retryingAll}
+                                        className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3"
+                                        title="Retry all failed leads"
+                                    >
+                                        {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
+                                        <span>Retry All Failed</span>
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -517,12 +580,19 @@ export default function CampaignDetails() {
                             <Table hover align="middle" className="mb-0 text-nowrap" style={{ minWidth: "1050px" }}>
                                 <thead className="table-light">
                                     <tr>
-                                        <th style={{ width: "22%" }}>Business Lead</th>
-                                        <th style={{ width: "22%" }}>Target Email</th>
-                                        <th style={{ width: "18%" }}>Delivered From</th>
+                                        <th style={{ width: "40px" }} className="text-center">
+                                            <Form.Check
+                                                type="checkbox"
+                                                onChange={handleSelectAll}
+                                                checked={leads.length > 0 && selectedLeadIds.length === leads.length}
+                                            />
+                                        </th>
+                                        <th style={{ width: "20%" }}>Business Lead</th>
+                                        <th style={{ width: "20%" }}>Target Email</th>
+                                        <th style={{ width: "16%" }}>Delivered From</th>
                                         <th style={{ width: "12%" }}>Status</th>
-                                        <th style={{ width: "16%" }}>Sent / Processed At</th>
-                                        <th style={{ width: "15%" }}>Error Details</th>
+                                        <th style={{ width: "14%" }}>Sent / Processed At</th>
+                                        <th style={{ width: "18%" }}>Error Details</th>
                                         <th className="text-end" style={{ width: "10%" }}>Actions</th>
                                     </tr>
                                 </thead>
@@ -530,8 +600,16 @@ export default function CampaignDetails() {
                                     {leads.map((lead) => {
                                         const errorMsg = lead.failure_reason || lead.error_message;
                                         const senderEmail = lead.sender?.email || lead.sender?.from_email || lead.sender?.name || "-";
+                                        const isSelected = selectedLeadIds.includes(lead.id);
                                         return (
-                                            <tr key={lead.id}>
+                                            <tr key={lead.id} className={isSelected ? "table-active" : ""}>
+                                                <td className="text-center">
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleSelectLead(lead.id)}
+                                                    />
+                                                </td>
                                                 <td className="fw-medium text-dark">
                                                     {lead.business?.business_name || "N/A"}
                                                 </td>

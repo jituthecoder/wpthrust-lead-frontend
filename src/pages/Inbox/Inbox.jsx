@@ -263,12 +263,23 @@ function Inbox() {
                     </div>
                     <div className="d-flex align-items-center gap-2">
                         <button
-                            className="btn btn-outline-secondary d-flex align-items-center gap-2"
+                            className="btn btn-outline-primary d-flex align-items-center gap-2 font-weight-bold"
                             onClick={handleSync}
                             disabled={syncing}
+                            title={
+                                selectedSenderId
+                                    ? `Sync emails for ${senders.find((s) => String(s.id) === String(selectedSenderId))?.email || "selected account"}`
+                                    : "Sync active mailboxes"
+                            }
                         >
                             <FiRefreshCw className={syncing ? "spin" : ""} />
-                            <span>{syncing ? "Syncing..." : "Sync Mailbox"}</span>
+                            <span>
+                                {syncing
+                                    ? "Syncing..."
+                                    : selectedSenderId
+                                    ? `Sync ${senders.find((s) => String(s.id) === String(selectedSenderId))?.email || "Selected Account"}`
+                                    : "Sync Mailbox"}
+                            </span>
                         </button>
                     </div>
                 </div>

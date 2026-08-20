@@ -135,6 +135,15 @@ function Sidebar({ mobile = false, onClose }) {
                     <span>Inbox</span>
                 </NavLink>
 
+                <NavLink
+                    to="/psi-report"
+                    className="nav-link"
+                    onClick={handleNavClick}
+                >
+                    <FiBookOpen />
+                    <span>PSI Report</span>
+                </NavLink>
+
                 {user?.role === "super_admin" && (
                     <NavLink
                         to="/users"

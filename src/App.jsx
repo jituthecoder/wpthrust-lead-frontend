@@ -32,6 +32,9 @@ import EmailTemplates from "./pages/EmailTemplates/EmailTemplates";
 // Unified Inbox
 import Inbox from "./pages/Inbox/Inbox";
 
+// PSI Report
+import PsiReport from "./pages/PsiReport/PsiReport";
+
 function App() {
     return (
         <>
@@ -172,6 +175,16 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <Inbox />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* PSI Report */}
+            <Route
+                path="/psi-report"
+                element={
+                    <ProtectedRoute>
+                        <PsiReport />
                     </ProtectedRoute>
                 }
             />

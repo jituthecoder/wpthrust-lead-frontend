@@ -339,65 +339,78 @@ export default function SendersTab() {
                                         </td>
                                         <td className="text-end">
                                             <div className="d-flex gap-1 justify-content-end align-items-center">
-                                                {(sender.requires_reauth || !sender.is_active) && (
-                                                    <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        onClick={() => handleAddSender(sender.provider)}
-                                                        className="d-flex align-items-center gap-1 fw-bold text-dark"
-                                                        title="Re-authorize Account"
-                                                    >
-                                                        <FiRefreshCw />
-                                                        <span>Re-authorize</span>
-                                                    </Button>
+                                                {sender.requires_reauth || !sender.is_active ? (
+                                                    <>
+                                                        <Button
+                                                            variant="warning"
+                                                            size="sm"
+                                                            onClick={() => handleAddSender(sender.provider)}
+                                                            className="d-flex align-items-center gap-1 fw-bold text-dark px-3"
+                                                            title="Reconnect Account"
+                                                        >
+                                                            <FiRefreshCw />
+                                                            <span>Reconnect</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="light"
+                                                            size="sm"
+                                                            className="text-danger border"
+                                                            onClick={() => handleDeleteSender(sender.id)}
+                                                            title="Delete Sender"
+                                                        >
+                                                            <FiTrash2 />
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            variant="outline-info"
+                                                            size="sm"
+                                                            onClick={() => handleTestConnection(sender)}
+                                                            disabled={testingSenderId === sender.id}
+                                                            title="Test Connection"
+                                                            className="d-flex align-items-center gap-1"
+                                                        >
+                                                            {testingSenderId === sender.id ? (
+                                                                <Spinner size="sm" animation="border" />
+                                                            ) : (
+                                                                <FiCheckCircle />
+                                                            )}
+                                                            <span className="d-none d-xl-inline">Test</span>
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="outline-success"
+                                                            size="sm"
+                                                            onClick={() => handleOpenTestEmail(sender)}
+                                                            title="Send Test Email"
+                                                            className="d-flex align-items-center gap-1"
+                                                        >
+                                                            <FiSend />
+                                                            <span className="d-none d-xl-inline">Send Mail</span>
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="light"
+                                                            size="sm"
+                                                            onClick={() => handleEditSender(sender)}
+                                                            title="Edit Sender"
+                                                            className="border"
+                                                        >
+                                                            <FiEdit3 />
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="light"
+                                                            size="sm"
+                                                            className="text-danger border"
+                                                            onClick={() => handleDeleteSender(sender.id)}
+                                                            title="Delete Sender"
+                                                        >
+                                                            <FiTrash2 />
+                                                        </Button>
+                                                    </>
                                                 )}
-
-                                                <Button
-                                                    variant="outline-info"
-                                                    size="sm"
-                                                    onClick={() => handleTestConnection(sender)}
-                                                    disabled={testingSenderId === sender.id}
-                                                    title="Test Connection"
-                                                    className="d-flex align-items-center gap-1"
-                                                >
-                                                    {testingSenderId === sender.id ? (
-                                                        <Spinner size="sm" animation="border" />
-                                                    ) : (
-                                                        <FiCheckCircle />
-                                                    )}
-                                                    <span className="d-none d-xl-inline">Test</span>
-                                                </Button>
-
-                                                <Button
-                                                    variant="outline-success"
-                                                    size="sm"
-                                                    onClick={() => handleOpenTestEmail(sender)}
-                                                    title="Send Test Email"
-                                                    className="d-flex align-items-center gap-1"
-                                                >
-                                                    <FiSend />
-                                                    <span className="d-none d-xl-inline">Send Mail</span>
-                                                </Button>
-
-                                                <Button
-                                                    variant="light"
-                                                    size="sm"
-                                                    onClick={() => handleEditSender(sender)}
-                                                    title="Edit Sender"
-                                                    className="border"
-                                                >
-                                                    <FiEdit3 />
-                                                </Button>
-
-                                                <Button
-                                                    variant="light"
-                                                    size="sm"
-                                                    className="text-danger border"
-                                                    onClick={() => handleDeleteSender(sender.id)}
-                                                    title="Delete Sender"
-                                                >
-                                                    <FiTrash2 />
-                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -454,48 +467,71 @@ export default function SendersTab() {
                                     </div>
 
                                     <div className="d-flex flex-wrap gap-2 pt-2 border-top">
-                                        <Button
-                                            variant="outline-info"
-                                            size="sm"
-                                            onClick={() => handleTestConnection(sender)}
-                                            disabled={testingSenderId === sender.id}
-                                            className="d-flex align-items-center gap-1"
-                                        >
-                                            {testingSenderId === sender.id ? (
-                                                <Spinner size="sm" animation="border" />
-                                            ) : (
-                                                <FiCheckCircle />
-                                            )}
-                                            <span>Test</span>
-                                        </Button>
+                                        {sender.requires_reauth || !sender.is_active ? (
+                                            <div className="w-100 d-flex gap-2">
+                                                <Button
+                                                    variant="warning"
+                                                    size="sm"
+                                                    onClick={() => handleAddSender(sender.provider)}
+                                                    className="w-100 fw-bold text-dark d-flex align-items-center justify-content-center gap-1"
+                                                >
+                                                    <FiRefreshCw /> Reconnect Account
+                                                </Button>
+                                                <Button
+                                                    variant="light"
+                                                    size="sm"
+                                                    className="text-danger border"
+                                                    onClick={() => handleDeleteSender(sender.id)}
+                                                >
+                                                    <FiTrash2 />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Button
+                                                    variant="outline-info"
+                                                    size="sm"
+                                                    onClick={() => handleTestConnection(sender)}
+                                                    disabled={testingSenderId === sender.id}
+                                                    className="d-flex align-items-center gap-1"
+                                                >
+                                                    {testingSenderId === sender.id ? (
+                                                        <Spinner size="sm" animation="border" />
+                                                    ) : (
+                                                        <FiCheckCircle />
+                                                    )}
+                                                    <span>Test</span>
+                                                </Button>
 
-                                        <Button
-                                            variant="outline-success"
-                                            size="sm"
-                                            onClick={() => handleOpenTestEmail(sender)}
-                                            className="d-flex align-items-center gap-1"
-                                        >
-                                            <FiSend />
-                                            <span>Send Test Email</span>
-                                        </Button>
+                                                <Button
+                                                    variant="outline-success"
+                                                    size="sm"
+                                                    onClick={() => handleOpenTestEmail(sender)}
+                                                    className="d-flex align-items-center gap-1"
+                                                >
+                                                    <FiSend />
+                                                    <span>Send Test Email</span>
+                                                </Button>
 
-                                        <div className="ms-auto d-flex gap-1">
-                                            <Button
-                                                variant="light"
-                                                size="sm"
-                                                onClick={() => handleEditSender(sender)}
-                                            >
-                                                <FiEdit3 />
-                                            </Button>
-                                            <Button
-                                                variant="light"
-                                                size="sm"
-                                                className="text-danger"
-                                                onClick={() => handleDeleteSender(sender.id)}
-                                            >
-                                                <FiTrash2 />
-                                            </Button>
-                                        </div>
+                                                <div className="ms-auto d-flex gap-1">
+                                                    <Button
+                                                        variant="light"
+                                                        size="sm"
+                                                        onClick={() => handleEditSender(sender)}
+                                                    >
+                                                        <FiEdit3 />
+                                                    </Button>
+                                                    <Button
+                                                        variant="light"
+                                                        size="sm"
+                                                        className="text-danger"
+                                                        onClick={() => handleDeleteSender(sender.id)}
+                                                    >
+                                                        <FiTrash2 />
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </Card.Body>
                             </Card>

@@ -77,8 +77,11 @@ export const retryCampaignLead = (campaignId, campaignLeadId) => {
     return axiosClient.post(`/email-campaigns/${campaignId}/leads/${campaignLeadId}/retry`);
 };
 
-export const retryAllFailedCampaignLeads = (campaignId) => {
-    return axiosClient.post(`/email-campaigns/${campaignId}/leads/retry-all`);
+export const retryAllFailedCampaignLeads = (campaignId, { error_filter = "", lead_ids = [] } = {}) => {
+    return axiosClient.post(`/email-campaigns/${campaignId}/leads/retry-all`, {
+        error_filter,
+        lead_ids,
+    });
 };
 
 export const syncCampaignLeads = (campaignId) => {
