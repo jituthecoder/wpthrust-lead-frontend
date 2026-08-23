@@ -98,6 +98,7 @@ export default function Contacts() {
             setMatchingCount(res.data.data?.total || 0);
         } catch (err) {
             console.error("Failed to check matching leads", err);
+            setMatchingCount(0);
         } finally {
             setCheckingMatching(false);
         }
@@ -400,7 +401,7 @@ export default function Contacts() {
                                             onChange={(e) => setFilterSearch(e.target.value)}
                                         />
                                     </Col>
-                                    <Col md={4}>
+                                     <Col md={4}>
                                         <Form.Label className="small fw-semibold mb-1">PageSpeed Score</Form.Label>
                                         <Form.Select size="sm" value={filterPsi} onChange={(e) => setFilterPsi(e.target.value)}>
                                             <option value="">All PageSpeed Scores</option>
@@ -418,7 +419,8 @@ export default function Contacts() {
                                             <option value="">Any</option>
                                             <option value="yes">Must Have Screenshot</option>
                                         </Form.Select>
-                                                            <Col md={4}>
+                                    </Col>
+                                    <Col md={4}>
                                         <Form.Label className="small fw-semibold mb-1">Has Website</Form.Label>
                                         <Form.Select size="sm" value={filterWebsite} onChange={(e) => setFilterWebsite(e.target.value)}>
                                             <option value="">Any</option>
@@ -470,7 +472,7 @@ export default function Contacts() {
                                             onChange={(e) => setFilterCountry(e.target.value)}
                                         />
                                     </Col>
-                                </Row>              </Row>
+                                </Row>
 
                                 <div className="p-2 bg-white rounded border d-flex align-items-center justify-content-between">
                                     <span className="small text-muted">Matching Leads Ready to Import:</span>
