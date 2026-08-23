@@ -25,6 +25,12 @@ function BusinessList() {
 
     const [assigned, setAssigned] = useState("");
 
+    const [hasEmail, setHasEmail] = useState("");
+
+    const [hasOpened, setHasOpened] = useState("");
+
+    const [hasClicked, setHasClicked] = useState("");
+
     useEffect(() => {
 
         loadBusinesses(1);
@@ -34,6 +40,9 @@ function BusinessList() {
         status,
         category,
         assigned,
+        hasEmail,
+        hasOpened,
+        hasClicked,
     ]);
 
     async function loadBusinesses(page = 1) {
@@ -53,6 +62,12 @@ function BusinessList() {
                 category,
 
                 assigned,
+
+                has_email: hasEmail,
+
+                has_opened: hasOpened,
+
+                has_clicked: hasClicked,
 
             });
 
@@ -89,6 +104,12 @@ function BusinessList() {
                 setCategory={setCategory}
                 assigned={assigned}
                 setAssigned={setAssigned}
+                hasEmail={hasEmail}
+                setHasEmail={setHasEmail}
+                hasOpened={hasOpened}
+                setHasOpened={setHasOpened}
+                hasClicked={hasClicked}
+                setHasClicked={setHasClicked}
             />
 
             <BusinessTable

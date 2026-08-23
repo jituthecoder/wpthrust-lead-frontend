@@ -35,6 +35,9 @@ export default function Contacts() {
     const [filterPsi, setFilterPsi] = useState("");
     const [filterScreenshot, setFilterScreenshot] = useState("");
     const [filterWebsite, setFilterWebsite] = useState("");
+    const [filterEmail, setFilterEmail] = useState("yes");
+    const [filterOpened, setFilterOpened] = useState("");
+    const [filterClicked, setFilterClicked] = useState("");
     const [filterCategory, setFilterCategory] = useState("");
     const [filterCountry, setFilterCountry] = useState("");
 
@@ -75,7 +78,7 @@ export default function Contacts() {
         if (showCreateModal && !editingList) {
             checkMatchingLeads();
         }
-    }, [showCreateModal, filterSearch, filterPsi, filterScreenshot, filterWebsite, filterCategory, filterCountry]);
+    }, [showCreateModal, filterSearch, filterPsi, filterScreenshot, filterWebsite, filterEmail, filterOpened, filterClicked, filterCategory, filterCountry]);
 
     const checkMatchingLeads = async () => {
         try {
@@ -85,6 +88,9 @@ export default function Contacts() {
                 psi_filter: filterPsi,
                 has_screenshot: filterScreenshot,
                 has_website: filterWebsite,
+                has_email: filterEmail,
+                has_opened: filterOpened,
+                has_clicked: filterClicked,
                 category: filterCategory,
                 country: filterCountry,
                 per_page: 1,
@@ -105,6 +111,9 @@ export default function Contacts() {
         setFilterPsi("");
         setFilterScreenshot("");
         setFilterWebsite("");
+        setFilterEmail("yes");
+        setFilterOpened("");
+        setFilterClicked("");
         setFilterCategory("");
         setFilterCountry("");
         setShowCreateModal(true);
@@ -141,6 +150,9 @@ export default function Contacts() {
                         psi_filter: filterPsi,
                         has_screenshot: filterScreenshot,
                         has_website: filterWebsite,
+                        has_email: filterEmail,
+                        has_opened: filterOpened,
+                        has_clicked: filterClicked,
                         category: filterCategory,
                         country: filterCountry,
                     },
@@ -406,13 +418,36 @@ export default function Contacts() {
                                             <option value="">Any</option>
                                             <option value="yes">Must Have Screenshot</option>
                                         </Form.Select>
-                                    </Col>
-                                    <Col md={4}>
+                                                            <Col md={4}>
                                         <Form.Label className="small fw-semibold mb-1">Has Website</Form.Label>
                                         <Form.Select size="sm" value={filterWebsite} onChange={(e) => setFilterWebsite(e.target.value)}>
                                             <option value="">Any</option>
                                             <option value="yes">Must Have Website</option>
                                             <option value="no">No Website Only</option>
+                                        </Form.Select>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold mb-1">Has Email</Form.Label>
+                                        <Form.Select size="sm" value={filterEmail} onChange={(e) => setFilterEmail(e.target.value)}>
+                                            <option value="yes">Must Have Email</option>
+                                            <option value="no">Missing Email Only</option>
+                                            <option value="">Any</option>
+                                        </Form.Select>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold mb-1">Email Opened</Form.Label>
+                                        <Form.Select size="sm" value={filterOpened} onChange={(e) => setFilterOpened(e.target.value)}>
+                                            <option value="">Any</option>
+                                            <option value="yes">Opened Email (System)</option>
+                                            <option value="no">Not Opened</option>
+                                        </Form.Select>
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold mb-1">Email Clicked</Form.Label>
+                                        <Form.Select size="sm" value={filterClicked} onChange={(e) => setFilterClicked(e.target.value)}>
+                                            <option value="">Any</option>
+                                            <option value="yes">Clicked Email Link</option>
+                                            <option value="no">Not Clicked</option>
                                         </Form.Select>
                                     </Col>
                                     <Col md={4}>
@@ -435,7 +470,7 @@ export default function Contacts() {
                                             onChange={(e) => setFilterCountry(e.target.value)}
                                         />
                                     </Col>
-                                </Row>
+                                </Row>              </Row>
 
                                 <div className="p-2 bg-white rounded border d-flex align-items-center justify-content-between">
                                     <span className="small text-muted">Matching Leads Ready to Import:</span>

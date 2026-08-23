@@ -48,6 +48,9 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
     const [psiFilter, setPsiFilter] = useState("");
     const [hasScreenshot, setHasScreenshot] = useState("");
     const [hasWebsite, setHasWebsite] = useState("");
+    const [hasEmail, setHasEmail] = useState("yes");
+    const [hasOpened, setHasOpened] = useState("");
+    const [hasClicked, setHasClicked] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [countryFilter, setCountryFilter] = useState("");
 
@@ -149,7 +152,7 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
         if (show && step === 4) {
             loadLeadsFiltered();
         }
-    }, [show, step, page, perPage, businessSearch, psiFilter, hasScreenshot, hasWebsite, categoryFilter, countryFilter]);
+    }, [show, step, page, perPage, businessSearch, psiFilter, hasScreenshot, hasWebsite, hasEmail, hasOpened, hasClicked, categoryFilter, countryFilter]);
 
     const loadAllOptions = async () => {
         try {
@@ -207,6 +210,9 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 psi_filter: psiFilter,
                 has_screenshot: hasScreenshot,
                 has_website: hasWebsite,
+                has_email: hasEmail,
+                has_opened: hasOpened,
+                has_clicked: hasClicked,
                 category: categoryFilter,
                 country: countryFilter,
                 page,
@@ -299,6 +305,9 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                 psi_filter: psiFilter,
                 has_screenshot: hasScreenshot,
                 has_website: hasWebsite,
+                has_email: hasEmail,
+                has_opened: hasOpened,
+                has_clicked: hasClicked,
                 category: categoryFilter,
                 page: 1,
                 per_page: 500,
@@ -805,6 +814,48 @@ export default function CreateCampaignModal({ show, onHide, campaign = null, onS
                                                         <option value="">All Websites</option>
                                                         <option value="yes">🌐 Has Website</option>
                                                         <option value="no">🚫 No Website</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={hasEmail}
+                                                        onChange={(e) => {
+                                                            setHasEmail(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="yes">📧 Must Have Email</option>
+                                                        <option value="no">🚫 Missing Email</option>
+                                                        <option value="">All Emails</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={hasOpened}
+                                                        onChange={(e) => {
+                                                            setHasOpened(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Email Opens</option>
+                                                        <option value="yes">👁️ Opened Email (System)</option>
+                                                        <option value="no">🙈 Not Opened</option>
+                                                    </Form.Select>
+                                                </Col>
+                                                <Col md={2}>
+                                                    <Form.Select
+                                                        size="sm"
+                                                        value={hasClicked}
+                                                        onChange={(e) => {
+                                                            setHasClicked(e.target.value);
+                                                            setPage(1);
+                                                        }}
+                                                    >
+                                                        <option value="">All Email Clicks</option>
+                                                        <option value="yes">🖱️ Clicked Email Link</option>
+                                                        <option value="no">🚫 Not Clicked</option>
                                                     </Form.Select>
                                                 </Col>
                                                 <Col md={2}>
