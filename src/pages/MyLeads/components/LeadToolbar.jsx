@@ -114,6 +114,7 @@ export default function LeadToolbar({ filters, setFilters }) {
                             placeholder="Search business, phone or email..."
                             value={filters.search}
                             onChange={handleSearch}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                         />
                     </InputGroup>
                 </div>

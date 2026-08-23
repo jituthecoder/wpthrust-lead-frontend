@@ -36,6 +36,7 @@ export default function CampaignDetails() {
     const [pagination, setPagination] = useState({});
     const [statusFilter, setStatusFilter] = useState("");
     const [errorFilter, setErrorFilter] = useState("");
+    const [errorSearch, setErrorSearch] = useState("");
     const [selectedLeadIds, setSelectedLeadIds] = useState([]);
     const [search, setSearch] = useState("");
 
@@ -81,6 +82,7 @@ export default function CampaignDetails() {
             const res = await getCampaignLeads(id, {
                 status: statusFilter,
                 search,
+                error_search: errorSearch,
                 page,
                 per_page: 20,
             });
@@ -98,7 +100,7 @@ export default function CampaignDetails() {
             loadCampaignData();
             loadLeads(1);
         }
-    }, [id, statusFilter, search]);
+    }, [id, statusFilter, search, errorSearch]);
 
     // Live Stats Polling for running or paused campaigns
     useEffect(() => {
@@ -114,6 +116,7 @@ export default function CampaignDetails() {
     }, [campaign?.status, id]);
 
     const handleStart = async () => {
+        if (!window.confirm("Are you sure you want to START this campaign? Emails will begin queuing and sending to leads.")) return;
         try {
             await startEmailCampaign(id);
             toast.success("Campaign started successfully!");
@@ -126,6 +129,7 @@ export default function CampaignDetails() {
     };
 
     const handlePause = async () => {
+        if (!window.confirm("Are you sure you want to PAUSE this campaign? Email dispatch will be temporarily suspended.")) return;
         try {
             await pauseEmailCampaign(id);
             toast.success("Campaign paused!");
@@ -137,6 +141,7 @@ export default function CampaignDetails() {
     };
 
     const handleResume = async () => {
+        if (!window.confirm("Are you sure you want to RESUME this campaign? Email sending will resume.")) return;
         try {
             await resumeEmailCampaign(id);
             toast.success("Campaign resumed!");
@@ -478,6 +483,76 @@ export default function CampaignDetails() {
                 </Card.Body>
             </Card>
 
+            {/* Per-Sender Breakdown Card */}
+            {stats?.sender_stats && stats.sender_stats.length > 0 && (
+                <Card className="border-0 shadow-sm mb-4 rounded-3">
+                    <Card.Header className="bg-white border-0 p-3 p-md-4 pb-2">
+                        <h5 className="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                            <FiUsers className="text-primary" />
+                            <span>Sender Account Performance Breakdown</span>
+                        </h5>
+                        <small className="text-muted">Track emails sent, opens, clicks, unsubscribes, and bounces for each sender account assigned to this campaign.</small>
+                    </Card.Header>
+                    <Card.Body className="p-0">
+                        <div className="table-responsive">
+                            <Table hover align="middle" className="mb-0 text-nowrap">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Sender Account</th>
+                                        <th>Provider</th>
+                                        <th>Sent / Delivered</th>
+                                        <th>Opened</th>
+                                        <th>Clicked</th>
+                                        <th>Unsubscribed</th>
+                                        <th>Bounced</th>
+                                        <th>Failed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stats.sender_stats.map((s) => (
+                                        <tr key={s.sender_id}>
+                                            <td>
+                                                <div className="fw-bold text-dark">{s.display_name || s.name}</div>
+                                                <small className="text-primary">{s.email}</small>
+                                            </td>
+                                            <td>
+                                                <Badge bg="light" className="text-dark border text-uppercase px-2 py-1">
+                                                    {s.provider || "SMTP"}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <span className="fw-bold text-dark">{s.sent}</span>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <Badge bg="success" className="px-2 py-1">{s.opened}</Badge>
+                                                    <small className="text-muted">({s.open_rate}%)</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <Badge bg="primary" className="px-2 py-1">{s.clicked}</Badge>
+                                                    <small className="text-muted">({s.click_rate}%)</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="fw-semibold text-warning">{s.unsubscribed}</span>
+                                            </td>
+                                            <td>
+                                                <span className="fw-semibold text-danger">{s.bounced}</span>
+                                            </td>
+                                            <td>
+                                                <span className="fw-semibold text-secondary">{s.failed}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </Card.Body>
+                </Card>
+            )}
+
             {/* Leads Table Card */}
             <Card className="border-0 shadow-sm rounded-3">
                 <Card.Header className="bg-white border-0 p-3 p-md-4 pb-2">
@@ -491,6 +566,7 @@ export default function CampaignDetails() {
                                     placeholder="Search lead or email..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                                     className="ps-4"
                                 />
                                 <FiSearch className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />
@@ -511,16 +587,17 @@ export default function CampaignDetails() {
                             </Form.Select>
 
                             {(statusFilter === "failed" || (stats?.failed || 0) > 0) && (
-                                <Form.Select
-                                    value={errorFilter}
-                                    onChange={(e) => setErrorFilter(e.target.value)}
-                                    style={{ width: "190px" }}
-                                >
-                                    <option value="">All Failure Reasons</option>
-                                    <option value="auth">🔐 OAuth / Auth Token Errors</option>
-                                    <option value="connection">🔌 SMTP / Connection Errors</option>
-                                    <option value="bounce">📫 Bounced / Rejected</option>
-                                </Form.Select>
+                                <div className="position-relative" style={{ minWidth: "240px" }}>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Filter error text (e.g. JWT, auth)..."
+                                        value={errorSearch}
+                                        onChange={(e) => setErrorSearch(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        className="ps-4"
+                                    />
+                                    <FiSearch className="position-absolute top-50 start-0 translate-middle-y ms-2 text-danger" />
+                                </div>
                             )}
 
                             {selectedLeadIds.length > 0 ? (
@@ -533,6 +610,18 @@ export default function CampaignDetails() {
                                 >
                                     {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
                                     <span>Retry Selected ({selectedLeadIds.length})</span>
+                                </Button>
+                            ) : errorSearch.trim() !== "" ? (
+                                <Button
+                                    variant="warning"
+                                    size="sm"
+                                    onClick={() => handleRetryAllFailed(errorSearch)}
+                                    disabled={retryingAll}
+                                    className="d-inline-flex align-items-center gap-1 text-nowrap py-2 px-3 fw-bold text-dark"
+                                    title={`Retry leads matching error: "${errorSearch}"`}
+                                >
+                                    {retryingAll ? <Spinner size="sm" animation="border" /> : <FiRefreshCw />}
+                                    <span>Retry Filtered Errors</span>
                                 </Button>
                             ) : (stats?.failed || 0) > 0 && (
                                 <div className="d-flex gap-2">
@@ -599,7 +688,14 @@ export default function CampaignDetails() {
                                 <tbody>
                                     {leads.map((lead) => {
                                         const errorMsg = lead.failure_reason || lead.error_message;
-                                        const senderEmail = lead.sender?.email || lead.sender?.from_email || lead.sender?.name || "-";
+                                        const senderEmail = lead.sender?.email || lead.sender?.from_email || lead.sender?.name || lead.sender?.display_name || lead.sender?.sender_account?.username || "-";
+                                        const processedTime = lead.sent_at
+                                            ? new Date(lead.sent_at).toLocaleString()
+                                            : lead.last_attempt_at
+                                            ? new Date(lead.last_attempt_at).toLocaleString()
+                                            : lead.updated_at
+                                            ? new Date(lead.updated_at).toLocaleString()
+                                            : "-";
                                         const isSelected = selectedLeadIds.includes(lead.id);
                                         return (
                                             <tr key={lead.id} className={isSelected ? "table-active" : ""}>
@@ -616,9 +712,7 @@ export default function CampaignDetails() {
                                                 <td className="text-primary">{lead.business?.email || "N/A"}</td>
                                                 <td className="small text-muted">{senderEmail}</td>
                                                 <td>{getLeadStatusBadge(lead.status)}</td>
-                                                <td className="small text-muted">
-                                                    {lead.sent_at ? new Date(lead.sent_at).toLocaleString() : "-"}
-                                                </td>
+                                                <td className="small text-muted">{processedTime}</td>
                                                 <td className="small text-danger" style={{ maxWidth: "250px" }}>
                                                     {errorMsg ? (
                                                         <span className="text-truncate d-block" title={errorMsg}>

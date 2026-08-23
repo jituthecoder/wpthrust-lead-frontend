@@ -15,7 +15,7 @@ export default function BusinessToolbar({
 
         <div className="card border-0 shadow-sm mb-4">
             <div className="card-body p-3">
-                <div className="row g-3">
+                <form onSubmit={(e) => e.preventDefault()} className="row g-3">
                     <div className="col-xl-4 col-lg-3 col-md-6 col-12">
                         <div className="input-group">
                             <span className="input-group-text">
@@ -26,6 +26,7 @@ export default function BusinessToolbar({
                                 placeholder="Search business name..."
                                 value={search}
                                 onChange={(e)=>setSearch(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                             />
                         </div>
                     </div>
@@ -78,7 +79,7 @@ export default function BusinessToolbar({
                             Reset
                         </button>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
 

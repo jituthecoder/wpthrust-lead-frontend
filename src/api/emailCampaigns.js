@@ -62,11 +62,12 @@ export const getCampaignStats = (id) => {
     return axiosClient.get(`/email-campaigns/${id}/stats`);
 };
 
-export const getCampaignLeads = (id, { status = "", search = "", per_page = 20, page = 1 } = {}) => {
+export const getCampaignLeads = (id, { status = "", search = "", error_search = "", per_page = 20, page = 1 } = {}) => {
     return axiosClient.get(`/email-campaigns/${id}/leads`, {
         params: {
             status,
             search,
+            error_search,
             per_page,
             page,
         },

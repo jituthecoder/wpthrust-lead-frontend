@@ -40,10 +40,11 @@ export const testSenderConnection = (id) => {
     return axiosClient.post(`/email-senders/${id}/test`);
 };
 
-export const sendSenderTestEmail = (id, { to, subject, message }) => {
+export const sendSenderTestEmail = (id, { to, subject, message, html }) => {
     return axiosClient.post(`/email-senders/${id}/send-test`, {
         to,
         subject,
         message,
+        html,
     });
 };

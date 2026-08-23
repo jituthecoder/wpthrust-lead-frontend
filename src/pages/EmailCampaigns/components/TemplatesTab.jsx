@@ -89,6 +89,7 @@ export default function TemplatesTab() {
                             placeholder="Search templates..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                             className="ps-4"
                         />
                         <FiSearch className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />

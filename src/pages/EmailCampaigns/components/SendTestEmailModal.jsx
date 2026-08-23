@@ -23,11 +23,13 @@ export default function SendTestEmailModal({ show, onHide, sender = null }) {
     const [customSubject, setCustomSubject] = useState("Test Email from WPThrust CRM");
     const [customMessage, setCustomMessage] = useState("Hi,\n\nThis is a test email sent to verify your email sender settings in WPThrust CRM.");
     const [renderedHtml, setRenderedHtml] = useState("");
+    const [testResult, setTestResult] = useState(null);
 
     useEffect(() => {
         if (show) {
             loadModalData();
             setRecipientEmail("");
+            setTestResult(null);
         }
     }, [show, sender]);
 
@@ -140,13 +142,16 @@ export default function SendTestEmailModal({ show, onHide, sender = null }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setTestResult(null);
         const targetSenderId = selectedSenderId || sender?.id;
         if (!targetSenderId) {
             toast.error("Please select a sender account.");
+            setTestResult({ type: "danger", message: "Please select a sender account." });
             return;
         }
         if (!recipientEmail) {
             toast.error("Please enter a recipient email address.");
+            setTestResult({ type: "danger", message: "Please enter a recipient email address." });
             return;
         }
 
@@ -159,11 +164,13 @@ export default function SendTestEmailModal({ show, onHide, sender = null }) {
                 html: selectedTemplateId !== "custom" ? renderedHtml : null,
             };
 
-            await sendSenderTestEmail(targetSenderId, payload);
-            toast.success(`Test email sent successfully to ${recipientEmail}!`);
-            onHide();
+            const res = await sendSenderTestEmail(targetSenderId, payload);
+            const successMsg = res.data?.message || `Test email sent successfully to ${recipientEmail}!`;
+            setTestResult({ type: "success", message: successMsg });
+            toast.success(successMsg);
         } catch (error) {
-            const msg = error.response?.data?.message || "Failed to send test email";
+            const msg = error.response?.data?.message || error.message || "Failed to send test email. Check SMTP credentials or limits.";
+            setTestResult({ type: "danger", message: msg });
             toast.error(msg);
         } finally {
             setSending(false);
@@ -184,6 +191,13 @@ export default function SendTestEmailModal({ show, onHide, sender = null }) {
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
                 <Modal.Body className="pt-0">
+                    {testResult && (
+                        <div className={`alert alert-${testResult.type} alert-dismissible fade show d-flex align-items-center gap-2 mb-3`} role="alert">
+                            {testResult.type === "success" ? <FiCheckCircle size={18} className="text-success" /> : <FiAlertCircle size={18} className="text-danger" />}
+                            <div className="small fw-semibold">{testResult.message}</div>
+                            <button type="button" className="btn-close" onClick={() => setTestResult(null)} aria-label="Close"></button>
+                        </div>
+                    )}
                     {loadingOptions ? (
                         <div className="text-center py-4">
                             <Spinner animation="border" variant="primary" />

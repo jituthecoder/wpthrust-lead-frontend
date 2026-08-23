@@ -57,6 +57,7 @@ export default function CampaignsTab() {
     };
 
     const handleStart = async (id) => {
+        if (!window.confirm("Are you sure you want to START this campaign? Emails will begin queuing and sending to leads.")) return;
         try {
             await startEmailCampaign(id);
             toast.success("Campaign started!");
@@ -68,6 +69,7 @@ export default function CampaignsTab() {
     };
 
     const handlePause = async (id) => {
+        if (!window.confirm("Are you sure you want to PAUSE this campaign? Email dispatch will be temporarily suspended.")) return;
         try {
             await pauseEmailCampaign(id);
             toast.success("Campaign paused!");
@@ -78,6 +80,7 @@ export default function CampaignsTab() {
     };
 
     const handleResume = async (id) => {
+        if (!window.confirm("Are you sure you want to RESUME this campaign? Email sending will resume.")) return;
         try {
             await resumeEmailCampaign(id);
             toast.success("Campaign resumed!");
@@ -127,6 +130,7 @@ export default function CampaignsTab() {
                             placeholder="Search campaigns..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                             className="ps-4"
                         />
                         <FiSearch className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />
